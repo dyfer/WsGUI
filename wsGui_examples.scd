@@ -47,6 +47,7 @@ i.states_([
 i.value_(0)
 i.value_(1)
 i.item
+i.item_("two") // not implemented
 i.states[i.value][0]
 i.font_(Font.new(\Georgia).size_(24))
 i.action_({|val| "got state: ".post; val.value.postln; "item: ".post; val.item.postln;}) //passed button object now
@@ -59,18 +60,20 @@ c.font_(Font.new(\Courier).size_(16))
 c.backgroundColor_(Color.yellow); //change if you don't want the default transparent; setting transparency currently doesn't work
 c.backgroundColor_(Color.white);
 c.textColor_(Color.red);
-c.textAlign_(\justify) 
+c.textAlign_(\justify)
 c.remove
 
 //slider
 //not that great on a touchscreen... will need a different graphical representation eventually
 e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
 //EZSlider with control spec;
-e.controlSpec_(\freq.asSpec) //only in EZSlider; 
+e.controlSpec_(\freq.asSpec) //only in EZSlider;
 e.value_(10000)
-e.value_(11210.5)
-e.value
-e.action_({|val| postf("slider value: %\n", val.value)}) //now the actual object is passed
+e.value // NOTE: posts normalized 0>1 value of slider, not mapped value
+e.value // NOTE: again, no mapped value
+e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
+// NOTE: now move the slider - the action function presumably makes the same .value call, but it reports the mapped value
+e.value // NOTE: now .value reports the mapped value!?
 e.remove
 
 //without controlSpec
@@ -79,37 +82,41 @@ k = WsSlider.new(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
 k.value_(0)
 k.value_(0.7)
 k.value
-k.action_({|val| postf("slider value: %\n", val.value)}) //now the actual object is passed
+k.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
+// NOTE: add .valueAction_(newVal) method
 k.remove
 
 //image
 //image can be placed anywhere; internally a symlink is created for each image
-d = WsImage.new(a, Rect(0.2, 0.2, 0.3, 0), "~/Desktop/soundWalkMarcin_fromJake sm.jpg".standardizePath); //0 for width or height will default to default image's w-h ratio
+d = WsImage.new(a, Rect(0.2, 0.2, 0.8, 0), "~/Desktop/soundWalkMarcin_fromJake sm.jpg".standardizePath); //0 for width or height will default to default image's w-h ratio
 d = WsImage.new(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
-d.path_("localFile"); 
+d.path_("localFile");
 d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
 d.action_({|val| "image is clickable!".postln});
 d.remove
 
 //popup menu
-f = WsPopUpMenu.new(a, Rect(0.5, 0.5, 0.4, 0.4)); 
+f = WsPopUpMenu.new(a, Rect(0.5, 0.5, 0.4, 0.4));
 f.items_(["first", "second"])
 f.font_(Font.new(\Georgia).size_(72))
 f.backgroundColor_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
 f.textColor_(Color.red);
 f.textAlign_(\right)  //remove that, not working
-f.action_({|val| "menu val: ".post; val.value.postln; "item: ".post; val.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
+f.action_({|mn| "menu val: ".post; mn.value.postln; "item: ".post; mn.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
 f.value_(1) //index
 f.item //text
+f.item_("second") //NOTE: not implemented
 // f.item_("second") //end up not implementing since would require iteration
 f.value
 f.remove
 
 //checkbox... not sure if useful when not resizable
 g = WsCheckbox.new(a, Rect(0.0, 0, 0.2, 0.2)); //checkbox; not resizable due to browser restrictions. Eventually this might change but requires more work with CSS
+g.value_(1)
+g.value
 g.value_(0)
 g.value
-g.action_({|val| "check: ".post; val.value.postln;}) //wsCheckbox passed; val 0/1
+g.action_({|cb| "check: ".post; cb.value.postln;}) //wsCheckbox passed; val 0/1
 g.remove
 
 
@@ -157,7 +164,7 @@ h.remove
 
 //testing reliability
 e = WsSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
-h = WsSlider.new(a, Rect(0.3, 0.3, 0.1, 0.4)); 
+h = WsSlider.new(a, Rect(0.3, 0.3, 0.1, 0.4));
 (
 Routine.run({
 	1000.do({
@@ -181,9 +188,9 @@ Routine.run({
 a.updateWidget(0)
 a.guiObjects[\button0]
 
-a.addWidget(\but0, \button, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\backgroundColor -> Color.red), (\textColor -> Color.black), (\font -> Font.new.size_(16)), (\bounds -> Rect(0.2, 0.1, 0.2, 0.2)), (\innerHTML -> "myText!!!")]) 
+a.addWidget(\but0, \button, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\backgroundColor -> Color.red), (\textColor -> Color.black), (\font -> Font.new.size_(16)), (\bounds -> Rect(0.2, 0.1, 0.2, 0.2)), (\innerHTML -> "myText!!!")])
 
-a.addWidget(\m0, \menu, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\backgroundColor -> Color.red), (\font -> Font.new.size_(16)), (\textColor -> Color.green), (\menuItems -> "".ccatList(["dupa","dupka","dupcia"]).copyToEnd(2)), (\bounds -> Rect(0.2, 0.1, 0.2, 0.2))]) 
+a.addWidget(\m0, \menu, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\backgroundColor -> Color.red), (\font -> Font.new.size_(16)), (\textColor -> Color.green), (\menuItems -> "".ccatList(["dupa","dupka","dupcia"]).copyToEnd(2)), (\bounds -> Rect(0.2, 0.1, 0.2, 0.2))])
 
 a.guiObjects[4][0][\value] = "dupa"
 a.guiObjects[4][0][\menuItems] = "cos,zupelnie"
@@ -193,9 +200,9 @@ a.updateWidget(4)
 
 a.removeWidget(\m0)
 
-a.addWidget(\sl, \slider, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\font -> Font.new.size_(16)), (\bounds -> Rect(0.2, 0.3, 0.4, 0.2)), (\innerHTML -> "myText!!!")]) 
+a.addWidget(\sl, \slider, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\font -> Font.new.size_(16)), (\bounds -> Rect(0.2, 0.3, 0.4, 0.2)), (\innerHTML -> "myText!!!")])
 
-a.addWidget(\t1, \text, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\textColor -> Color.black), (\font -> Font.new.size_(16)), (\bounds -> Rect(0.4, 0.6, 0.1, 0.1)), (\innerHTML -> "myText!!<br>!")]) 
+a.addWidget(\t1, \text, {|val| postf("but0 %\n", val)}, IdentityDictionary[(\textColor -> Color.black), (\font -> Font.new.size_(16)), (\bounds -> Rect(0.4, 0.6, 0.1, 0.1)), (\innerHTML -> "myText!!<br>!")])
 
 a.guiObjects[2][0][\innerHTML] = "długi tekst czy się zawija?<br>nowa linia";
 
@@ -240,7 +247,7 @@ a.sendMsgToAll("[\"add\", 1]")
 a.sendMsgToAll("'[2, 1]'")
 a.send(a.prepareJSON(\add, \button0, d));
 a.prepareJSON(\add, \button0, d).parseYAML //parsing JSON!!!!
-a.send("{\"command\":\"add\",\"id\":\"butt3\"}"); 
+a.send("{\"command\":\"add\",\"id\":\"butt3\"}");
 
 d = IdentityDictionary(know: true)
 d.put(\command, \add);
