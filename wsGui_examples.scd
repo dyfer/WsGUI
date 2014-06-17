@@ -69,13 +69,13 @@ e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently availabl
 //EZSlider with control spec;
 e.controlSpec_(\freq.asSpec) //only in EZSlider;
 e.value_(10000)
-e.value // NOTE: posts normalized 0>1 value of slider, not mapped value
-e.value // NOTE: again, no mapped value
+e.value 
 e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
-// NOTE: now move the slider - the action function presumably makes the same .value call, but it reports the mapped value
-e.value // NOTE: now .value reports the mapped value!?
+e.value
 e.remove
 
+a.guiObjects[0][0][\value]
+a.guiObjects[0][2].map(a.guiObjects[0][0][\value]).class
 //without controlSpec
 k = WsSlider.new(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
 //add EZSlider with control spec;

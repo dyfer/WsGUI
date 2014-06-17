@@ -283,7 +283,8 @@ WsGUI {
 		// "incoming value: ".post;
 		// value.postln;
 		if(numericOutputKinds.includes(guiObjects[objID][0][\kind]), {
-			value = guiObjects[objID][2].map(value.asFloat); //convert to float and map controlspec here and
+			// value = guiObjects[objID][2].map(value.asFloat); //convert to float and map controlspec here and
+			value = value.asFloat;
 		});	
 		//update value in the dictionary
 		guiObjects[objID][0][\value] = value;
@@ -1057,7 +1058,7 @@ WsSlider {
 
 	value_ {|val|
  		if(ws.guiObjects[id][0][\value].isNil, {
-			ws.guiObjects[id][0].put(\value, ws.guiObjects[id][2].unmap(val));
+			ws.guiObjects[id][0].put(\value, ws.guiObjects[id][2].unmap(val)); //should not unmap here
 		}, {
 			ws.guiObjects[id][0][\value] = ws.guiObjects[id][2].unmap(val);
 		});
@@ -1066,7 +1067,7 @@ WsSlider {
 	}
 
 	value {
-		^ws.guiObjects[id][0][\value];
+		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
 	}
 
 	remove {
@@ -1075,12 +1076,11 @@ WsSlider {
 
 }
 
-WsEZSlider {
+WsEZSlider { //this should later be implemented as call to WsSlider and WsStaticText for label and value
 	var ws, <bounds;
 	var <id;
 	var function, prFunction;
 
-	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
@@ -1152,7 +1152,7 @@ WsEZSlider {
 	}
 
 	value {
-		^ws.guiObjects[id][0][\value];
+		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
 	}
 
 	remove {

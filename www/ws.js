@@ -52,7 +52,7 @@ function onWsClose() {
     document.body.innerHTML = discMessage;
     // console.log(isConnected);
     if(!isChecking) {
-	checking = setInterval( function(){checkWwwConnection()},3000);
+	checking = setInterval( function(){checkWwwConnection()},6000);
     }
     isConnected = false;
 }
