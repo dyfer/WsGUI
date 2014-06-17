@@ -71,11 +71,10 @@ e.controlSpec_(\freq.asSpec) //only in EZSlider;
 e.value_(10000)
 e.value 
 e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
+e.valueAction_(2000);
 e.value
 e.remove
 
-a.guiObjects[0][0][\value]
-a.guiObjects[0][2].map(a.guiObjects[0][0][\value]).class
 //without controlSpec
 k = WsSlider.new(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
 //add EZSlider with control spec;
@@ -107,6 +106,7 @@ f.value_(1) //index
 f.item //text
 f.item_("second") //NOTE: not implemented
 // f.item_("second") //end up not implementing since would require iteration
+f.valueAction_(0);
 f.value
 f.remove
 
