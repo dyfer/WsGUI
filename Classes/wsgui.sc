@@ -787,6 +787,7 @@ WsButton : WsSimpleButton {
 			value = val;
 			this.prUpdateStringAndColors;
 			action.value(value);
+			^val;
 		});
 	}
 	
@@ -1070,6 +1071,12 @@ WsSlider {
 		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
 	}
 
+	valueAction_ {|val|
+		this.value_(val);
+		function.value(this);
+		^val;
+	}
+
 	remove {
 		ws.removeWidget(id);
 	}
@@ -1153,6 +1160,12 @@ WsEZSlider { //this should later be implemented as call to WsSlider and WsStatic
 
 	value {
 		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
+	}
+
+	valueAction_ {|val|
+		this.value_(val);
+		function.value(this);
+		^val;
 	}
 
 	remove {
@@ -1301,6 +1314,12 @@ WsPopUpMenu {
 		^ws.guiObjects[id][0][\value].asInteger;
 	}
 
+	valueAction_ {|val|
+		this.value_(val);
+		function.value(this);
+		^val;
+	}
+
 	// item_ {|itemString|
 	// 	^this.value(ws.guiObjects[id][0][\menuItems].indexOf(itemString)); //that would require using only symbols or iteration... leaving out for now
 	// }
@@ -1393,6 +1412,12 @@ WsCheckbox {
 
 	value {
 		^ws.guiObjects[id][0][\value];
+	}
+
+	valueAction_ {|val|
+		this.value_(val);
+		function.value(this);
+		^val;
 	}
 
 	remove {
