@@ -1,0 +1,1 @@
+var discMessage = "Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly";

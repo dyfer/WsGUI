@@ -1,0 +1,2 @@
+# exclude python bytecode
+*.pyc
