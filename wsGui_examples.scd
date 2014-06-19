@@ -69,7 +69,7 @@ e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently availabl
 //EZSlider with control spec;
 e.controlSpec_(\freq.asSpec) //only in EZSlider;
 e.value_(10000)
-e.value 
+e.value
 e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
 e.valueAction_(2000);
 e.value
@@ -96,7 +96,7 @@ d.remove
 
 //popup menu
 f = WsPopUpMenu.new(a, Rect(0.5, 0.5, 0.4, 0.4));
-f.items_(["first", "second"])
+f.items_(['-','first', 'second','A third test'])
 f.font_(Font.new(\Georgia).size_(72))
 f.backgroundColor_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
 f.textColor_(Color.red);
