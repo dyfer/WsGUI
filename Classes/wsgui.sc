@@ -19,19 +19,19 @@ WsGUI {
 	classvar <>jsFilename = "wsport.js"; //relative to class
 	classvar <>discMsgFile = "discMessage.js";
 
-	*new {|wwwPort, // wsPort = 9999, wsOscPort = 7000, 
+	*new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
 		oscPath = "/sockets", actionOnClose, suppressPosting = false|
-		^super.newCopyArgs(wwwPort, // wsPort, wsOscPort, 
+		^super.newCopyArgs(wwwPort, // wsPort, wsOscPort,
 			oscPath, actionOnClose, suppressPosting).init;
 	}
 
 	*killPython { //sometimes needed
 		"killall python".unixCmd
 	}
-	
+
 	*updateWsPortInFile {arg port = 8000;
 		var path = wwwPath; //www path
-		var filename = jsFilename; 
+		var filename = jsFilename;
 		var fileContentsArray, filePath;
 		if(path[0] == "~", {//it's relative to home directory
 			path = path.standardizePath;
@@ -62,7 +62,7 @@ WsGUI {
 
 	*setDisconnectedMessage {|message|
 		var path = wwwPath; //www path
-		var filename = discMsgFile; 
+		var filename = discMsgFile;
 		var fileContentsArray, filePath;
 		if(path[0] == "~", {//it's relative to home directory
 			path = path.standardizePath;
@@ -102,7 +102,7 @@ WsGUI {
 		// "bridgePath: ".post; bridgePath.postln;
 		// workingDir = bridgePath.dirname;
 		// "workingDir: ".post; workingDir.postln;
-		
+
 		//init vars
 		guiObjects = IdentityDictionary.new(know: true);
 		clientDict = IdentityDictionary.new(know: true);
@@ -118,7 +118,7 @@ WsGUI {
 				Error("WsGUI: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
 			})
 		};
-			
+
 		this.getPorts; //get next free port for websockets and udp communication
 		WsGUI.updateWsPortInFile(wsPort);
 		this.startBridge; //to give time
@@ -141,19 +141,19 @@ WsGUI {
 		//starting python socket bridge
 		//usage: python ws_osc.py SC_OSC_port, ws_OSC_port, oscPath, ws_port
 		cmd = "exec" + pythonPath + "-u" + bridgePath + NetAddr.langPort + wsOscPort + oscPath + wsPort; //-u makes posting possible (makes stdout unbuffered)
-		wsPid = cmd.unixCmd({|code, exPid| 
+		wsPid = cmd.unixCmd({|code, exPid|
 			("Bridge stopped, exit code: " ++ code ++ "; cleaning up").postln;
 			wsPid = nil;
 			this.killWWW;
 			this.prCleanup;
 		}, suppressPosting.not);
-		
+
 		this.prPrepareGlobalResponders; //needs to be done after starting node, so node doesn't end up binding to osc receive port
 
 		//prepare send port
 		scSendNetAddr = NetAddr("localhost", wsOscPort);
 	}
-	
+
 	startStaticServer {arg port = 8000;
 		var rootPath = wwwPath;
 		var cmd;
@@ -177,21 +177,21 @@ WsGUI {
 			wwwPid = nil;
 			this.killWS;
 		}, postOutput: suppressPosting.not);
-		// wwwPipe = Pipe.new(cmd, "w"); 
+		// wwwPipe = Pipe.new(cmd, "w");
 	}
 
 	prPrepareGlobalResponders {
 		socketsResponder = OSCdef(oscPath, {|msg, time, addr, recvPort|
 			var command, hostport, data;
 			//command is either 'add', 'remove', or 'data'
-			#command, hostport, data= msg[[1, 2, 3]]; 
+			#command, hostport, data= msg[[1, 2, 3]];
 			command = command.asSymbol;
 			hostport = hostport.asSymbol;
-			// postf("command: %\n", command); 
-			// postf("Message from %\n", hostport); 
-			// postf("Data: %\n", data); 
+			// postf("command: %\n", command);
+			// postf("Message from %\n", hostport);
+			// postf("Data: %\n", data);
 			// postf("Data present: %\n", dataPresent.asBoolean);
-			// msg.postln; 
+			// msg.postln;
 			command.switch(
 				\add, {this.addWsClient(hostport)},
 				\remove, {this.removeWsClient(hostport)},
@@ -200,7 +200,7 @@ WsGUI {
 		}, oscPath);
 	}
 
-	sendMsg {|dest, msg| 
+	sendMsg {|dest, msg|
 		// "Sending from SC: ".post; [dest, msg].postln;
 		scSendNetAddr.sendMsg(dest, msg);
 		// scSendNetAddr.sendBundle(0, dest, msg);
@@ -249,7 +249,7 @@ WsGUI {
 			});
 		});
 	}
-	
+
 	prAddAllObj {|dest|
 		guiObjects.keysDo({|thisID|
 			this.prAddObj(dest, thisID);
@@ -258,7 +258,7 @@ WsGUI {
 
 	send {|msg| //temp syntax shortcut
 		this.sendMsgToAll(msg);
-	} 
+	}
 
 	addWsClient {|hostport|
 		clientDict.put(hostport, true);
@@ -285,21 +285,21 @@ WsGUI {
 		if(numericOutputKinds.includes(guiObjects[objID][0][\kind]), {
 			// value = guiObjects[objID][2].map(value.asFloat); //convert to float and map controlspec here and
 			value = value.asFloat;
-		});	
+		});
 		//update value in the dictionary
 		guiObjects[objID][0][\value] = value;
 		// "value in the dictionary: ".post;
 		// guiObjects[objID][0][\value].postln;
-		// "guiObjects[objID][0]: ".post; 
+		// "guiObjects[objID][0]: ".post;
 		// guiObjects[objID][0].postln;
 		//broadcast change to other clients, use hostport to avoid feedback
-		this.prUpdateObjInAllExcept(objID, \value, hostport); 
+		this.prUpdateObjInAllExcept(objID, \value, hostport);
 		//trigger function
 		if(guiObjects[objID].notNil, {
 			guiObjects[objID][1].value(value);
 		});
 	}
-	
+
 	// killBridge {
 	// 	this.killWS;
 	// 	// this.killWWW; //called after stopping WS bridge
@@ -364,7 +364,7 @@ WsGUI {
 		});
 		newDict.put(\command, command);
 		newDict.put(\id, id);
-		// "newDict: ".post; 
+		// "newDict: ".post;
 		// newDict.postln;
 		if(command == \remove, {
 			str = this.prepareJSON(newDict); //don't go through css for removing
@@ -422,7 +422,7 @@ WsGUI {
 			cssDict.put(\left, (bounds.left * 100).asString ++ "%");
 			cssDict.put(\top, (bounds.top * 100).asString ++ "%");
 			if(bounds.width > 0, {cssDict.put(\width, (bounds.width * 100).asString ++ "%")});
-			if(bounds.height > 0, {cssDict.put(\height, (bounds.height * 100).asString ++ "%")}); 
+			if(bounds.height > 0, {cssDict.put(\height, (bounds.height * 100).asString ++ "%")});
 			if((dict[\kind] == \slider) && (bounds.width < bounds.height), {
 				cssDict.put('-webkit-appearance', "slider-vertical");
 			}); //auto vertical slider
@@ -470,8 +470,8 @@ WsGUI {
 			id = this.prGetCurrentIdAndIncrement;
 			okToAddWidget = true;
 		});
-				
-		if(okToAddWidget, {	
+
+		if(okToAddWidget, {
 			paramsDict = IdentityDictionary.new(know: true);
 			paramsDict.put(\kind, kind);
 			if(parameters.isKindOf(Dictionary), {
@@ -484,7 +484,7 @@ WsGUI {
 					paramsDict.put(\max, 1);
 					paramsDict.put(\value, spec.unmap(spec.default));
 					paramsDict.put(\step, \any);
-				}, //controlspec used only for slider's creation		
+				}, //controlspec used only for slider's creation
 				\body, {
 					bodyID = id;
 				},
@@ -511,7 +511,7 @@ WsGUI {
 		var cmd, relativeImgPath;
 		relativeImgPath = "images/" ++ id.asString;
 		cmd = "ln -sf " ++ path.escapeChar($ ) + (classPath.dirname ++ "/www/" ++ relativeImgPath).escapeChar($ );
-		"Creating symlink: ".post; 
+		"Creating symlink: ".post;
 		// cmd.postln;
 		cmd.unixCmdGetStdOut; //synchronously, so we have the link on time
 		^relativeImgPath;
@@ -520,7 +520,7 @@ WsGUI {
 	removeAllImageLinks {
 		var cmd;
 		cmd = "rm " ++ (classPath.dirname ++ "/www/images/*").escapeChar($ );
-		"Removing image links".postln; 
+		"Removing image links".postln;
 		// cmd.postln;
 		cmd.unixCmd;
 	}
@@ -550,7 +550,7 @@ WsGUI {
 	}
 
 	removeAllWidgets {
-		guiObjects.keysDo({ |key| 
+		guiObjects.keysDo({ |key|
 			this.removeWidget(key)
 		});
 		bodyID = nil;
@@ -618,7 +618,9 @@ WsGUI {
 	}
 }
 
-WsSimpleButton {
+WsWidget {}
+
+WsSimpleButton : WsWidget {
 	var ws, <bounds;
 	var <id;
 
@@ -626,7 +628,7 @@ WsSimpleButton {
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
-	
+
 	init {
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds));
@@ -639,7 +641,7 @@ WsSimpleButton {
 	action {
 		^ws.guiObjects[id][1];
 	}
-	
+
 	backgroundColor_ {|color|
 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 			ws.guiObjects[id][0].put(\backgroundColor, color);
@@ -709,7 +711,7 @@ WsSimpleButton {
 	css {
 		^ws.guiObjects[id][0][\css];
 	}
-	
+
 	controlSpec_ {|spec| //how to update dictionary with min and max on change?
 		^ws.guiObjects[id][2] = spec;
 	}
@@ -746,7 +748,7 @@ WsButton : WsSimpleButton {
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
-	
+
 	init {
 		// bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		// id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds));
@@ -790,7 +792,7 @@ WsButton : WsSimpleButton {
 			^val;
 		});
 	}
-	
+
 	backgroundColor_ {
 	}
 
@@ -804,7 +806,7 @@ WsButton : WsSimpleButton {
 	}
 }
 
-WsStaticText {
+WsStaticText : WsWidget{
 	var ws, <bounds;
 	var <id;
 
@@ -812,7 +814,7 @@ WsStaticText {
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
-	
+
 	init {
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		id = ws.addWidget(nil, \text, {}, IdentityDictionary.new.put(\bounds, bounds));
@@ -825,7 +827,7 @@ WsStaticText {
 	action {
 		^ws.guiObjects[id][1];
 	}
-	
+
 	backgroundColor_ {|color|
 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 			ws.guiObjects[id][0].put(\backgroundColor, color);
@@ -895,8 +897,8 @@ WsStaticText {
 	css {
 		^ws.guiObjects[id][0][\css];
 	}
-	
-	controlSpec_ {|spec| 
+
+	controlSpec_ {|spec|
 		^ws.guiObjects[id][2] = spec;
 	}
 
@@ -924,14 +926,14 @@ WsStaticText {
 	}
 }
 
-WsImage {
+WsImage : WsWidget{
 	var ws, <bounds, <path;
 	var <id;
 
 	*new {|wsGUI, bounds, path|
 		^super.newCopyArgs(wsGUI, bounds, path).init;
 	}
-	
+
 	init {
 		var paramsDict;
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
@@ -991,7 +993,7 @@ WsImage {
 	}
 }
 
-WsSlider {
+WsSlider : WsWidget {
 	var ws, <bounds;
 	var <id;
 	var function, prFunction;
@@ -1000,7 +1002,7 @@ WsSlider {
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
-	
+
 	init {
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds));
@@ -1020,7 +1022,7 @@ WsSlider {
 		// ^ws.guiObjects[id][1];
 		^function;
 	}
-	
+
 	// backgroundColor_ {|color|
 	// 	if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 	// 		ws.guiObjects[id][0].put(\backgroundColor, color);
@@ -1048,7 +1050,7 @@ WsSlider {
 	css {
 		^ws.guiObjects[id][0][\css];
 	}
-	
+
 	// controlSpec_ {|spec|
 	// 	^ws.guiObjects[id][2] = spec;
 	// }
@@ -1083,7 +1085,7 @@ WsSlider {
 
 }
 
-WsEZSlider { //this should later be implemented as call to WsSlider and WsStaticText for label and value
+WsEZSlider : WsWidget { //this should later be implemented as call to WsSlider and WsStaticText for label and value
 	var ws, <bounds;
 	var <id;
 	var function, prFunction;
@@ -1091,7 +1093,7 @@ WsEZSlider { //this should later be implemented as call to WsSlider and WsStatic
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
-	
+
 	init {
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds));
@@ -1111,7 +1113,7 @@ WsEZSlider { //this should later be implemented as call to WsSlider and WsStatic
 		// ^ws.guiObjects[id][1];
 		^function;
 	}
-	
+
 	// backgroundColor_ {|color|
 	// 	if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 	// 		ws.guiObjects[id][0].put(\backgroundColor, color);
@@ -1139,7 +1141,7 @@ WsEZSlider { //this should later be implemented as call to WsSlider and WsStatic
 	css {
 		^ws.guiObjects[id][0][\css];
 	}
-	
+
 	controlSpec_ {|spec| //how to update dictionary with min and max on change?
 		^ws.guiObjects[id][2] = spec;
 	}
@@ -1174,7 +1176,7 @@ WsEZSlider { //this should later be implemented as call to WsSlider and WsStatic
 
 }
 
-WsPopUpMenu {
+WsPopUpMenu : WsWidget {
 	var ws, <bounds;
 	var <id;
 	var function, prFunction;
@@ -1183,7 +1185,7 @@ WsPopUpMenu {
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
-	
+
 	init {
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		id = ws.addWidget(nil, \menu, {}, IdentityDictionary.new.put(\bounds, bounds));
@@ -1221,7 +1223,7 @@ WsPopUpMenu {
 		// ^ws.guiObjects[id][1];
 		^function;
 	}
-	
+
 	backgroundColor_ {|color|
 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 			ws.guiObjects[id][0].put(\backgroundColor, color);
@@ -1291,7 +1293,7 @@ WsPopUpMenu {
 	css {
 		^ws.guiObjects[id][0][\css];
 	}
-	
+
 	// controlSpec_ {|spec| //how to update dictionary with min and max on change?
 	// 	^ws.guiObjects[id][2] = spec;
 	// }
@@ -1333,7 +1335,7 @@ WsPopUpMenu {
 	}
 }
 
-WsCheckbox {
+WsCheckbox : WsWidget {
 	var ws, <bounds;
 	var <id;
 	var function, prFunction;
@@ -1342,7 +1344,7 @@ WsCheckbox {
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).init;
 	}
-	
+
 	init {
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		id = ws.addWidget(nil, \checkbox, {}, IdentityDictionary.new.put(\bounds, bounds));
@@ -1362,7 +1364,7 @@ WsCheckbox {
 		// ^ws.guiObjects[id][1];
 		^function;
 	}
-	
+
 	backgroundColor_ {|color|
 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 			ws.guiObjects[id][0].put(\backgroundColor, color);
@@ -1390,7 +1392,7 @@ WsCheckbox {
 	css {
 		^ws.guiObjects[id][0][\css];
 	}
-	
+
 	controlSpec_ {|spec| //how to update dictionary with min and max on change?
 		^ws.guiObjects[id][2] = spec;
 	}
@@ -1433,7 +1435,7 @@ WsCheckbox {
 // 	*new {|wsGUI, bounds, checkboxWidth = 0.2|
 // 		^super.newCopyArgs(wsGUI, bounds, checkboxWidth).init;
 // 	}
-	
+
 // 	init {
 // 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 // 		checkboxBounds = Rect(bounds.left, bounds.top, bounds.width * checkboxWidth, bounds.height);
@@ -1457,7 +1459,7 @@ WsCheckbox {
 // 	label {
 // 		^labelObject.string;
 // 	}
-	
+
 // 	backgroundColor_ {|color|
 // 		^labelObject.backgroundColor_(color);
 // 		// ^color;
@@ -1498,7 +1500,7 @@ WsCheckbox {
 // 	css {
 // 		^labelObject.css
 // 	}
-	
+
 // 	// controlSpec_ {|spec| //how to update dictionary with min and max on change?
 // 	// 	^ws.guiObjects[id][2] = spec;
 // 	// }
