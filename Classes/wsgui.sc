@@ -455,7 +455,7 @@ WsGUI {
 		});
 	}
 
-	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
+	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec, sendNow=true;
 		var paramsDict, id, okToAddWidget, step;
 		if(name.notNil, {
 			if(namesToIDs[name].isNil && name.isKindOf(SimpleNumber).not, {
@@ -502,7 +502,7 @@ WsGUI {
 				spec
 			]);
 			//send
-			this.prAddObjToAll(id);
+			sendNow.if{ this.prAddObjToAll(id) };
 		});
 		^id;
 	}
@@ -616,6 +616,103 @@ WsGUI {
 			^nil;
 		});
 	}
+
+	// make addLayout?
+	layout_ { |wsLayout|
+		var startX, startY, remHSpace, remVSpace;
+
+		// layouts = layouts.add(wsLayout); // to be added for introspection (i.e. .children)
+		wsLayout.bounds.notNil.if(
+			{	var bounds;
+				bounds = wsLayout.bounds;
+				remVSpace = bounds.height;
+				remHSpace = bounds.width;
+				startX = bounds.x;
+				startY = bounds.y;
+			},
+			// else bounds are full page
+			{ remVSpace = remHSpace = 1; startX = startY = 0; }
+		);
+
+		postf("laying out in these absolute bounds: %, %, %, %\n", startX, startY, remHSpace, remVSpace);
+
+		wsLayout.isKindOf(WsHLayout).if{
+			this.buildHLayout(wsLayout, Rect(startX, startY, remHSpace, remVSpace));
+		};
+	}
+
+	buildHLayout { |layout, parentBounds| //parX, parY, parW, parH
+		var elements, nItems, hSpaces, freeSpace, nilSize;
+		var nextX, nextY, parW, parH;
+
+		elements = layout.elements;
+		nItems = elements.size;
+		hSpaces = elements.collect{|elem|
+			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
+				{ elem.bounds.notNil.if(
+					{ "returning a width hSpace ".post; elem.bounds.width.postln; elem.bounds.width },
+					{ "returning nil hSpace".postln; nil; }
+					);
+				},
+				{ elem } // assumed to be either nil or a Number
+			);
+		};
+		hSpaces.postln;
+		freeSpace = (1 - hSpaces.select({|width| width.notNil}).sum).clip(0,1);
+		nilSize = if(freeSpace != 0, {freeSpace / hSpaces.occurrencesOf(nil)},{0});
+
+		postf( "number of items: %\nhorizontal spaces:%\navailable free space:%\nnilSize: %\n", nItems, hSpaces, freeSpace, nilSize);
+
+		// place the widgets
+		nextX = parentBounds.left;
+		nextY = parentBounds.top;
+		parW = parentBounds.width;
+		parH = parentBounds.height;
+
+		elements.do{ |elem, i|
+			var elemKind, myBounds, myWidth;
+			elemKind = elem.class;
+			"iterating through: ".post; elem.postln;
+			"next X pos: ".post; nextX.postln;
+			"next Y pos: ".post; nextY.postln;
+
+			// if it's a Ws layout or widget, get its height and bounds
+			if( elem.notNil and: (elemKind != Number), {
+			elem.bounds.notNil.if(
+					{	var myHeight;
+						myWidth = elem.bounds.width * parW;
+						myHeight = elem.bounds.height * parH;
+						// ignoring original xy for now
+						myBounds = Rect(nextX, nextY, myWidth, myHeight);
+					},{
+						myWidth =  (hSpaces[i] ?? nilSize) * parW;
+						myBounds = Rect(nextX, nextY, myWidth, parH);
+				});
+			});
+
+			case
+			{elemKind == Number} { nextX = nextX + (elem * parW)} // advance the x pointer (empty space)
+			{elem.isNil} { nextX = nextX + (nilSize * parW)} // advance the x pointer (empty space)
+			{elemKind == WsHLayout}  {
+				"found a WsHLayout to lay out: ".post; elem.postln;
+				this.buildHLayout(elem, Rect(nextX, nextY, (hSpaces[i] ?? nilSize) * parW, parH));
+				nextX = nextX + myWidth;
+			}
+			{elemKind == WsVLayout} {
+				"found a WsVLayout to lay out: ".post; elem.postln;
+				this.buildVLayout(elem, Rect(nextX, nextY, (hSpaces[i] ?? nilSize) * parW, parH));
+				nextX = nextX + myWidth;
+			}
+			{ elem.isKindOf(WsWidget) } {
+				"found a WsWidget to lay out: ".post; elem.postln;
+				"setting widget bounds to: ".post; myBounds.postln;
+				elem.bounds_(myBounds);
+				elem.addToPage;
+				nextX = nextX + myWidth;
+			};
+		};
+	}
+
 }
 
 WsWidget {}
@@ -626,13 +723,40 @@ WsSimpleButton : WsWidget {
 
 	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
 	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).init;
+		^super.newCopyArgs(wsGUI, bounds).addAndSend;
 	}
 
-	init {
+	// doesn't send to page, just inits the object
+	// TODO: change so wsGUI isn't necessary at this stage
+	*init { |wsGUI, bounds|
+		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+	}
+
+	addAndSend {
+		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+		id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
+	}
+
+	addDontSend {
+		id = ws.addWidget(
+			nil, \button, {},
+			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
+			sendNow: false
+		);
+	}
+
+	// useful only if the widget is instantiated but hasn't been sent to the page yet
+	bounds_ { |boundsRect|
+		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+		ws.guiObjects[id][0][\bounds] = bounds;
+	}
+
+	addToPage { ws.prAddObjToAll(id) }
+
+	/*init {
 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
 		id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds));
-	}
+	}*/
 
 	action_ {|function|
 		^ws.guiObjects[id][1] = function;
@@ -1426,6 +1550,32 @@ WsCheckbox : WsWidget {
 		ws.removeWidget(id);
 	}
 }
+
+/* -------------------
+	Layouts
+*/
+WsLayout {}
+
+WsHLayout : WsLayout {
+	// copyArgs
+	var <bounds, <elements;
+
+	*new { |bounds ... elements |
+		^super.newCopyArgs(bounds, elements)
+	}
+
+}
+
+WsVLayout : WsLayout {
+	// copyArgs
+	var <bounds, <elements;
+
+	*new { |bounds ... elements |
+		^super.newCopyArgs(bounds, elements)
+	}
+
+}
+
 
 // WsEZCheckbox { //this should be implemented using its own div; possibly checkbox better as well
 // 	var ws, <bounds, <checkboxWidth, label;

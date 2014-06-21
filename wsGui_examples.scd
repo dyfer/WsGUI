@@ -37,6 +37,22 @@ b.textColor_(Color.red);
 b.action_({"bu1".postln}) //just a function
 b.remove
 
+//init only, send to page later
+b = WsSimpleButton.init(a, nil); // no bounds specified
+b.string_("string")
+b.font_(Font.new(\Georgia).size_(24))
+b.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
+b.bounds
+b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
+b.bounds
+// now send
+b.addToPage
+b.backgroundColor_(Color.green);
+b.textColor_(Color.red);
+b.action_({"bu1".postln}) //just a function
+b.remove
+
+
 //button - multistate
 i = WsButton.new(a, Rect(0, 0, 0.2, 0.2)); //WsButton imitates SC style multistate button
 i.states_([
@@ -122,11 +138,50 @@ g.remove
 
 
 
+// LAYOUTS
+
+WsGUI.killPython // if needed
+a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
+
+( // create 3 buttons
+~b1 = WsSimpleButton.init(a, Rect(0,0,0.2,0.2)).string_("1");
+~b2 = WsSimpleButton.init(a, Rect(0,0,0.3,0.1)).string_("2");
+~b3 = WsSimpleButton.init(a, nil).string_("3"); // no bounds specified
+~b4 = WsSimpleButton.init(a, Rect(0,0,0.3,0.4)).string_("4"); // no bounds specified
+~b5 = WsSimpleButton.init(a, Rect(0,0,0.7,0.6)).string_("5"); // no bounds specified
+)
+(
+a.layout_( WsHLayout(nil,
+	~b1,
+	nil,
+	WsHLayout(nil, ~b4, ~b5),
+	~b2, nil, ~b3
+	)
+)
+)
+
+[~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
+
+x.elements
+x.bounds
 
 
+//init only, send to page later
+b = WsSimpleButton.init(a, nil); // no bounds specified
+b.string_("string")
+b.font_(Font.new(\Georgia).size_(24))
+b.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
+b.bounds
+b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
+b.bounds
+// now send
+b.addToPage
+b.backgroundColor_(Color.green);
+b.textColor_(Color.red);
+b.action_({"bu1".postln}) //just a function
+b.remove
 
-
-
+a.free
 
 
 

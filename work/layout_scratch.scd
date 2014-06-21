@@ -51,66 +51,80 @@ layout.elements.do{|elem, i|
 	});
 }
 
-wsLayout { |layout|
-	layout.bounds.notNil.if(
+WsHLayout {
+	// copyArgs
+	var <bounds, <elements;
+
+	*new { |bounds ... args|
+		^super.newCopyArgs(bounds);
+	}
+}
+
+// a method of wsGUI
+layout_ { |wsLayout|
+	var startX, startY, remHSpace, remVSpace;
+
+	// layouts = layouts.add(wsLayout); // to be added for introspection (i.e. .children)
+	wsLayout.bounds.notNil.if(
 		{	remVSpace = bounds.height;
 			remHSpace = bounds.width;
 			startX = bounds.x;
 			startY = bounds.y;
-		},{ remVSpace = remHSpace = 1; startX = starty = 0; }
+		},
+		// else bounds are full page
+		{ remVSpace = remHSpace = 1; startX = starty = 0; }
 	);
 
-	init {
-		layout.isKindOf(wsHLayout).if{ this.buildHLayout (layout, startX, startY, remHSpace, remVSpace) };
-		layout.isKindOf(wsVLayout).if{ this.buildVLayout (layout, startX, startY, remHSpace, remVSpace) };
-	}
+	wsLayout.isKindOf(WsHLayout).if{ this.buildHLayout (wsLayout, startX, startY, remHSpace, remVSpace) };
+	wsLayout.isKindOf(WsVLayout).if{ this.buildVLayout (wsLayout, startX, startY, remHSpace, remVSpace) };
+}
 
-	buildHLayout { |layout, parX, parY, parW, parH|
-		var hSpaces, freeSpace, nilSize;
-		var nextX, nextY;
+// a method of wsGUI
+buildHLayout { |layout, parX, parY, parW, parH|
+	var hSpaces, freeSpace, nilSize;
+	var nextX, nextY;
 
-		nItems = layout.size;
-		hSpaces = layout.collect{|elem|
-			if( elem.isKindOf(WsHLayout) or: elem.isKindOf(WsVLayout),
-				{ elem.bounds.notNil.if(
-					{ elem.bounds.width },
-					{ nil }
-					);
-				},
-				{ elem }
-			);
-		};
-		freeSpace = (1 - hSpaces.select({|width| width.notNil}).sum).clip(0,1);
-		nilSize = freeSpace / hSpaces.occurrencesOf(nil);
+	nItems = layout.size;
+	hSpaces = layout.collect{|elem|
+		if( elem.isKindOf(WsHLayout) or: elem.isKindOf(WsVLayout),
+			{ elem.bounds.notNil.if(
+				{ elem.bounds.width },
+				{ nil }
+				);
+			},
+			{ elem }
+		);
+	};
+	freeSpace = (1 - hSpaces.select({|width| width.notNil}).sum).clip(0,1);
+	nilSize = freeSpace / hSpaces.occurrencesOf(nil);
 
-		// place the widgets
-		nextX = parX;
-		nextY = parY;
-		layout.do{|elem, i|
-			switch( elem.class,
-				Number, 	{nextX = nextX + (elem * parW)}, // advance the x pointer (empty space)
-				Nil,		{nextX = nextX + (nilSize * parW)}, // advance the x pointer (empty space)
-				WsHLayout, 	{
-					this.buildHLayout(elem, nextX, nextY, (hSpaces[i] ?? nilSize) * parW, parH);
-				},
-				WsVLayout, 	{
-					this.buildVLayout(elem, nextX, nextY, (hSpaces[i] ?? nilSize) * parW, parH);
-				},
-				WsWidget, {
-					var myBounds, myWidth;
-					elem.bounds.notNil.if(
-						{
-							myWidth = elem.bounds.width * parW;
-							// ignoring original xy for now
-							myBounds = Rect(nextX, nextY, myWidth, elem.bounds.height * parH);
-						},{
-							myWidth =  (hSpaces[i] ?? nilSize) * parW;
-							myBounds = Rect(nextX, nextY, myWidth, parH);
-					});
-					elem.addToPage(wsGUI, boundds: myBounds);
-					nextX = nextX + myWidth;
-				}
-			);
-		};
-	}
+	// place the widgets
+	nextX = parX;
+	nextY = parY;
+	layout.do{|elem, i|
+		switch( elem.class,
+			Number, 	{nextX = nextX + (elem * parW)}, // advance the x pointer (empty space)
+			Nil,		{nextX = nextX + (nilSize * parW)}, // advance the x pointer (empty space)
+			WsHLayout, 	{
+				this.buildHLayout(elem, nextX, nextY, (hSpaces[i] ?? nilSize) * parW, parH);
+			},
+			WsVLayout, 	{
+				this.buildVLayout(elem, nextX, nextY, (hSpaces[i] ?? nilSize) * parW, parH);
+			},
+			WsWidget, {
+				var myBounds, myWidth;
+				elem.bounds.notNil.if(
+					{
+						myWidth = elem.bounds.width * parW;
+						// ignoring original xy for now
+						myBounds = Rect(nextX, nextY, myWidth, elem.bounds.height * parH);
+					},{
+						myWidth =  (hSpaces[i] ?? nilSize) * parW;
+						myBounds = Rect(nextX, nextY, myWidth, parH);
+				});
+				elem.addToPage(wsGUI, boundds: myBounds);
+				nextX = nextX + myWidth;
+			}
+		);
+	};
 }
