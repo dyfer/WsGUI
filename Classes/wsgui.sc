@@ -620,15 +620,14 @@ WsGUI {
 	// make addLayout?
 	layout_ { |wsLayout|
 		var startX, startY, remHSpace, remVSpace;
-
 		// layouts = layouts.add(wsLayout); // to be added for introspection (i.e. .children)
 		wsLayout.bounds.notNil.if(
 			{	var bounds;
 				bounds = wsLayout.bounds;
 				remVSpace = bounds.height;
 				remHSpace = bounds.width;
-				startX = bounds.x;
-				startY = bounds.y;
+				startX = bounds.left;
+				startY = bounds.top;
 			},
 			// else bounds are full page
 			{ remVSpace = remHSpace = 1; startX = startY = 0; }
@@ -647,6 +646,7 @@ WsGUI {
 
 		elements = layout.elements;
 		nItems = elements.size;
+		postf( "number of items: %, %\n", nItems, elements);
 		hSpaces = elements.collect{|elem|
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
 				{ elem.bounds.notNil.if(
@@ -658,10 +658,19 @@ WsGUI {
 			);
 		};
 		hSpaces.postln;
-		freeSpace = (1 - hSpaces.select({|width| width.notNil}).sum).clip(0,1);
+
+		// TODO
+		// assign layouts or widgets with nil (unspecified) width to a width of 1/numNonNilItems and rescale other items accordingly in case a layout with unspecified width is forced to 0 width by nilSize = 0
+		// hSpaces = hSpaces.replace(nil, 1/nItems).normalizeSum;
+
+		freeSpace = (
+			parentBounds.width - (hSpaces.select({|width| width.notNil})*parentBounds.width).sum
+		).clip(0,1);
+		// freeSpace = (parentBounds.width - hSpaces.select({|width| width.notNil}).sum).clip(0,1);
+
 		nilSize = if(freeSpace != 0, {freeSpace / hSpaces.occurrencesOf(nil)},{0});
 
-		postf( "number of items: %\nhorizontal spaces:%\navailable free space:%\nnilSize: %\n", nItems, hSpaces, freeSpace, nilSize);
+		postf( "horizontal spaces:%\navailable free space:%\nnilSize: %\n", hSpaces, freeSpace, nilSize);
 
 		// place the widgets
 		nextX = parentBounds.left;
@@ -672,12 +681,12 @@ WsGUI {
 		elements.do{ |elem, i|
 			var elemKind, myBounds, myWidth;
 			elemKind = elem.class;
-			"iterating through: ".post; elem.postln;
+			"\niterating through: ".post; elem.postln;
 			"next X pos: ".post; nextX.postln;
 			"next Y pos: ".post; nextY.postln;
 
 			// if it's a Ws layout or widget, get its height and bounds
-			if( elem.notNil and: (elemKind != Number), {
+			if( elem.notNil and: elem.isKindOf(Number).not, {
 			elem.bounds.notNil.if(
 					{	var myHeight;
 						myWidth = elem.bounds.width * parW;
@@ -691,7 +700,7 @@ WsGUI {
 			});
 
 			case
-			{elemKind == Number} { nextX = nextX + (elem * parW)} // advance the x pointer (empty space)
+			{elem.isKindOf(Number)} { nextX = nextX + (elem * parW)} // advance the x pointer (empty space)
 			{elem.isNil} { nextX = nextX + (nilSize * parW)} // advance the x pointer (empty space)
 			{elemKind == WsHLayout}  {
 				"found a WsHLayout to lay out: ".post; elem.postln;
@@ -721,7 +730,6 @@ WsSimpleButton : WsWidget {
 	var ws, <bounds;
 	var <id;
 
-	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
 	*new {|wsGUI, bounds|
 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
 	}
