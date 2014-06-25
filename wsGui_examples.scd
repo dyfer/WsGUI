@@ -145,21 +145,19 @@ a = WsGUI.new(8000); //specify port for using internal static web server; nil wh
 
  // create 3 buttons
 [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
-(
-~b1 = WsSimpleButton.init(a, Rect(0,0,0.2,0.2)).string_("1");
+( // TODO init doesn't need parent or x/y, just width height
+~b1 = WsSimpleButton.init(a, Rect(0,0,0.3,0.2)).string_("1");
 ~b2 = WsSimpleButton.init(a, Rect(0,0,0.3,1.0)).string_("2");
-~b3 = WsSimpleButton.init(a, Rect(0,0,0.2,0.1)).string_("3"); // no bounds specified
+~b3 = WsSimpleButton.init(a, nil).string_("3"); // no bounds specified
+
 ~b4 = WsSimpleButton.init(a, Rect(0,0,0.3,0.4)).string_("4"); // no bounds specified
-~b5 = WsSimpleButton.init(a, Rect(0,0,0.7,0.6)).string_("5"); // no bounds specified
+~b5 = WsSimpleButton.init(a, Rect(0,0,0.7,0.4)).string_("5"); // no bounds specified
 )
 
 
 (
-a.layout_( WsHLayout(Rect(0.55,0.25,0.45, 0.7),
-	~b1,
-	nil,
-	WsHLayout(nil, ~b5, ~b4),
-	~b2, 0.05, ~b3
+a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	~b1, 0.05, WsHLayout(nil, ~b5, ~b4), ~b2, nil, ~b3
 	)
 )
 )
@@ -168,6 +166,18 @@ a.layout_( WsHLayout(Rect(0.55,0.25,0.45, 0.7),
 
 x.elements
 x.bounds
+
+
+(
+a.layout_( WsHLayout(Rect(0.05,0.7,0.45, 0.3),
+	~b1,
+	nil,
+	WsHLayout(nil, ~b5, ~b4),
+	~b2, 0.1, ~b3
+	)
+)
+)
+
 
 
 //init only, send to page later
@@ -185,8 +195,7 @@ b.textColor_(Color.red);
 b.action_({"bu1".postln}) //just a function
 b.remove
 
-a.free
-
+a.free; [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
 
 
 
