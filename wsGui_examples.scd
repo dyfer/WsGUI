@@ -162,7 +162,60 @@ a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
 )
 )
 
+(
+a.layout_( WsVLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	~b1, 0.05, ~b2, nil, ~b3
+	)
+)
+)
+
+(
+a.layout_( WsVLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	~b1, 0.05, WsHLayout(nil, ~b5, ~b4), ~b2, nil, ~b3
+	)
+)
+)
+
+(
+a.layout_( WsVLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	*[~b1, ~b2, nil, ~b3]
+	)
+)
+)
+
 [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
+
+
+~buts = 24.collect{|i| WsSimpleButton.init(a, nil).string_(i.asString);}
+(
+a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	*~buts.clump(6).collect{|butgrp| WsVLayout(nil, *butgrp ) }
+	)
+)
+)
+
+~buts.do(_.remove)
+~buts = 24.collect{|i| WsSimpleButton.init(a, nil).string_(i.asString);}
+(
+a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	*~buts.clump(4).collect{|butgrp| WsVLayout(nil, *butgrp ) }
+	)
+)
+)
+
+~buts.do(_.remove)
+~buts = 512.collect{|i| WsSimpleButton.init(a, nil).string_(i.asString);}
+(
+a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	*~buts.clump(16).collect{|butgrp| WsVLayout(nil, *butgrp ) }
+	)
+)
+)
+
+~buts.do(_.remove)
+
+
+
 
 x.elements
 x.bounds
