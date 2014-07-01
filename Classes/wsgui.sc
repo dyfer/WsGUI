@@ -640,117 +640,10 @@ WsGUI {
 		};
 	}
 
-	buildHLayout { |layout, parBoundsRect| //parX, parY, parW, parH
-		var elements, nItems, widthsNorm, widthsAbs, nonNilWidths, unKnownWidthSize;
-		var nextX, nextY, parH, counter=0;
-		var freeSpace, nilSize; // move to if statement where they're used
-
-		elements = layout.elements;
-		nItems = elements.size;
-		postf( "number of items: %, %\n", nItems, elements);
-		widthsNorm = elements.collect{|elem|
-			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
-				{ elem.bounds.notNil.if(
-					{ "returning a width of bound ".post; elem.bounds.width.postln;
-						elem.bounds.width },
-					{ "returning unspecified width".postln;
-						'unspecified'; }
-					);
-				},{ elem } // assumed to be either nil or a Number
-			);
-		};
-		widthsNorm.postln;
-
-		// assign layouts or widgets with nil (unspecified) width to a width of
-		// 1/numNonNilItems and rescale other items accordingly in case a
-		// layout with unspecified width is forced to 0 width by nilSize = 0
-		// widthsNorm = widthsNorm.replace(nil, 1/nItems).normalizeSum;
-		nonNilWidths =	widthsNorm.select({|width| width.notNil});
-		postf("nonNilWidths: %\n",nonNilWidths);
-		unKnownWidthSize =	nonNilWidths.size.reciprocal; // numbers and 'unspecified's
-		postf("unKnownWidthSize: %\n",unKnownWidthSize);
-		nonNilWidths =	nonNilWidths.replace('unspecified', unKnownWidthSize);
-		postf("nonNilWidths: %\n", nonNilWidths);
-		postf("sum: %\n", nonNilWidths.sum);
-		if(nonNilWidths.sum > 1,
-			{ 	// widths are rescaled
-				"rescaling element widths".postln;
-				nonNilWidths = nonNilWidths.normalizeSum; // rescale all down to sum to 1
-				widthsAbs = widthsNorm.collect({ |item, i| var width;
-					item.isNil.if(
-						{ 	width = 0 },
-						{ 	width = nonNilWidths[counter];
-							counter = counter +1; }
-					);
-					width
-				}) * parBoundsRect.width // convert to absolute page widths
-			},{
-				var numNils;
-				freeSpace = 1 - nonNilWidths.sum;
-				numNils = widthsNorm.occurrencesOf(nil);
-				// freeSpace = (1 - widthsNorm.select({|width| width.notNil}).sum).clip(0,1);
-				nilSize = if(( numNils > 0) and: (freeSpace > 0), {freeSpace / numNils},{0});
-				widthsAbs = widthsNorm.collect({ |item, i|
-					var width;
-					item.isNil.if(
-						{	width = nilSize },
-						{	width = nonNilWidths[counter];
-							counter = counter +1; }
-					);
-					width
-				}) * parBoundsRect.width // convert to absolute page widths
-		});
-
-		postf( "horizontal spaces norm:%\nhorizontal spaces abs :%\navailable free space:%\nnilSize: %\n", widthsNorm, widthsAbs, freeSpace, nilSize);
-
-		// place the widgets
-		nextX =	parBoundsRect.left;
-		nextY =	parBoundsRect.top;
-		parH =	parBoundsRect.height;
-
-		elements.do{ |elem, i|
-			var elemKind, myBounds, myWidth;
-			elemKind = elem.class;
-			"\niterating through: ".post; elem.postln;
-			"next X pos: ".post; nextX.postln; "next Y pos: ".post; nextY.postln;
-
-			if( elem.isNil or: elem.isKindOf(Number),
-				{ // blank space, nil or explicit number
-					nextX = nextX + widthsAbs[i];
-				},{ // a widget or another layout
-					var myHeight;
-					myWidth = widthsAbs[i];
-					myHeight = elem.bounds.notNil.if(
-						{ elem.bounds.height * parH },
-						{ parH }
-					);
-					myBounds = Rect(nextX, nextY, myWidth, myHeight); // ignoring original xy for now
-					case
-					{elemKind == WsHLayout}	{
-						"found a WsHLayout to lay out: ".post; elem.postln;
-						this.buildHLayout(elem, myBounds);
-						nextX = nextX + myWidth;
-					}
-					{elemKind == WsVLayout} {
-						"found a WsVLayout to lay out: ".post; elem.postln;
-						this.buildVLayout(elem, myBounds);
-						nextX = nextX + myWidth;
-					}
-					{ elem.isKindOf(WsWidget) } {
-						postf("placing a WsWidget: % at bounds: %\n", elem, myBounds);
-						elem.bounds_(myBounds);
-						elem.addToPage;
-						nextX = nextX + myWidth;
-					};
-				}
-			);
-		};
-	}
-
 	buildLayout { |layout, parBoundsRect| //parX, parY, parW, parH
 		var loKind, elements, nItems, dimsNorm, dimsAbs, nonNilDims, unKnownDimSize;
 		var nextX, nextY, counter=0;
-		var freeSpace, nilSize; // move to if statement where they're used
+		var freeSpace=0, nilSize=0; // move to if statement where they're used
 
 		loKind = switch(layout.class,
 			WsVLayout, {\vert},
@@ -763,9 +656,9 @@ WsGUI {
 		dimsNorm = elements.collect{|elem|
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
 				{ elem.bounds.notNil.if(
-					{ 	"returning a width of bound ".post; elem.bounds.width.postln;
+					{ 	"returning a dimension of bound ".post; elem.bounds.width.postln;
 						(loKind == \vert).if({elem.bounds.height},{elem.bounds.width}) },
-					{ 	"returning unspecified width".postln;
+					{ 	"returning unspecified dimension".postln;
 						'unspecified' }
 					);
 				},{ elem } // assumed to be either nil or a Number
@@ -777,16 +670,16 @@ WsGUI {
 		// 1/numNonNilItems and rescale other items accordingly in case a
 		// layout with unspecified width is forced to 0 width by nilSize = 0
 		// dimsNorm = dimsNorm.replace(nil, 1/nItems).normalizeSum;
-		nonNilDims =	dimsNorm.select({|dim| dim.notNil});
+		nonNilDims =	dimsNorm.select({|dim| dim.notNil}); // numbers and 'unspecified's
 		postf("nonNilDims: %\n",nonNilDims);
-		unKnownDimSize =	nonNilDims.size.reciprocal; // numbers and 'unspecified's
+		unKnownDimSize =	nonNilDims.size.reciprocal; // size assigned to unspecified dimension
 		postf("unKnownDimSize: %\n",unKnownDimSize);
 		nonNilDims =	nonNilDims.replace('unspecified', unKnownDimSize);
 		postf("nonNilDims: %\n", nonNilDims);
 		postf("sum: %\n", nonNilDims.sum);
 		if(nonNilDims.sum > 1,
 			{ 	// widths are rescaled
-				"rescaling element widths".postln;
+				"rescaling element dimension".postln;
 				nonNilDims = nonNilDims.normalizeSum; // rescale all down to sum to 1
 				dimsAbs = dimsNorm.collect({ |item, i| var dim;
 					item.isNil.if(
@@ -795,7 +688,7 @@ WsGUI {
 							counter = counter +1; }
 					);
 					dim
-				}) * parBoundsRect.width // convert to absolute page widths
+				})
 			},{
 				var numNils;
 				freeSpace = 1 - nonNilDims.sum;
@@ -816,7 +709,7 @@ WsGUI {
 		// convert to absolute page widths
 		dimsAbs = dimsAbs * (loKind == \vert).if({parBoundsRect.height},{parBoundsRect.width});
 
-		postf( "horizontal spaces norm:%\nhorizontal spaces abs :%\navailable free space:%\nnilSize: %\n", dimsNorm, dimsAbs, freeSpace, nilSize);
+		postf( "dimensions norm:%\ndimensions abs :%\navailable free space:%\nnilSize: %\n", dimsNorm, dimsAbs, freeSpace, nilSize);
 
 		// place the widgets
 		nextX =	parBoundsRect.left;
@@ -831,7 +724,10 @@ WsGUI {
 					\vert,	{
 						myHeight = dimsAbs[i];
 						myWidth = elem.bounds.notNil.if(
-							{ elem.bounds.width * parBoundsRect.width },{ parBoundsRect.width }
+							{ postf("multiplying elem width: % by parent width: %\n",
+								elem.bounds.width, parBoundsRect.width);
+								elem.bounds.width * parBoundsRect.width
+							},{ parBoundsRect.width }
 						);
 					},
 					\horiz,	{
@@ -976,34 +872,24 @@ WsGUI {
 
 }
 
-WsWidget {}
+// TODO: figure out how to separate out methods for irrelevant sub-classes
+// e.g. textColor for WsCheckBox
 
-WsSimpleButton : WsWidget {
+WsWidget {
 	var ws, <bounds;
 	var <id;
 
-	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).addAndSend;
-	}
-
-	// doesn't send to page, just inits the object
 	// TODO: change so wsGUI isn't necessary at this stage
-	*init { |wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).addDontSend;
-	}
-
-	addAndSend {
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
-	}
-
-	addDontSend {
-		id = ws.addWidget(
-			nil, \button, {},
+	add {|wsGUI, bounds, kind, sendNow = true|
+		ws = wsGUI;
+		sendNow.if{ bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)} };
+		id = ws.addWidget(nil, kind, {},
 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
-			sendNow: false
+			sendNow: sendNow
 		);
 	}
+
+	addToPage { ws.prAddObjToAll(id) }
 
 	// useful only if the widget is instantiated but hasn't been sent to the page yet
 	bounds_ { |boundsRect|
@@ -1011,15 +897,8 @@ WsSimpleButton : WsWidget {
 		ws.guiObjects[id][0][\bounds] = bounds;
 	}
 
-	addToPage { ws.prAddObjToAll(id) }
-
-	/*init {
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds));
-	}*/
-
 	action_ {|function|
-		^ws.guiObjects[id][1] = function;
+		ws.guiObjects[id][1] = {function.value(this)}; // mtm: was just = function
 	}
 
 	action {
@@ -1033,7 +912,6 @@ WsSimpleButton : WsWidget {
 			ws.guiObjects[id][0][\backgroundColor] = color;
 		});
 		ws.updateWidget(id, \backgroundColor);
-		// ^color;
 	}
 
 	backgroundColor {
@@ -1047,7 +925,6 @@ WsSimpleButton : WsWidget {
 			ws.guiObjects[id][0][\textColor] = color;
 		});
 		ws.updateWidget(id, \textColor);
-		// ^color;
 	}
 
 	textColor {
@@ -1061,7 +938,6 @@ WsSimpleButton : WsWidget {
 			ws.guiObjects[id][0][\font] = font;
 		});
 		ws.updateWidget(id, \textColor);
-		// ^font;
 	}
 
 	font {
@@ -1075,7 +951,6 @@ WsSimpleButton : WsWidget {
 			ws.guiObjects[id][0][\textAlign] = align;
 		});
 		ws.updateWidget(id, \textAlign);
-		// ^align;
 	}
 
 	textAlign {
@@ -1089,7 +964,6 @@ WsSimpleButton : WsWidget {
 			ws.guiObjects[id][0][\css] = cssString;
 		});
 		ws.updateWidget(id, \css);
-		// ^cssString;
 	}
 
 	css {
@@ -1112,7 +986,6 @@ WsSimpleButton : WsWidget {
 			ws.guiObjects[id][0][\innerHTML] = thisString;
 		});
 		ws.updateWidget(id, \innerHTML);
-		// ^thisString;
 	}
 
 	string {
@@ -1124,44 +997,50 @@ WsSimpleButton : WsWidget {
 	}
 }
 
-WsButton : WsSimpleButton {
-	// var ws, <bounds;
-	// var <id;
-	var id, <value = 0, <numStates = 0, <states, <>action;
+WsSimpleButton : WsWidget {
 
 	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).init;
+		^super.new.add(wsGUI, bounds, \button, sendNow: true);
 	}
 
-	init {
-		// bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		// id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds));
-		super.init;
-		id = super.id;
-		action = {};
-		super.action_({
+	// doesn't send to page, just inits the object
+	*init { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \button, sendNow: false);
+	}
+}
+
+WsButton : WsWidget {
+	var <value = 0, <numStates = 0, <states;
+
+	*new {|wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \button, sendNow: true);
+	}
+
+	*init {|wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \button, sendNow: false);
+	}
+
+	// super.action_ overwrite to include incrementing the state counter in the function
+	action_ { |function|
+		var newFunction;
+		newFunction = {
 			value = (value + 1) % numStates;
 			this.prUpdateStringAndColors;
-			action.value(this);
-		});
+			function.value(this);
+		};
+		ws.guiObjects[id][1] = newFunction;
 	}
 
-	string_ {
-	}
-
-	string {
-	}
-
-	states_ {|statesArray|
+	states_ { |statesArray|
 		states = statesArray;
 		numStates = states.size;
 		this.prUpdateStringAndColors;
 	}
 
+	// TODO: normalize the way value is set (e.g. in WsSlider)
 	value_ {|val|
 		value = val;
 		this.prUpdateStringAndColors;
-		^value;
 	}
 
 	item {
@@ -1172,15 +1051,8 @@ WsButton : WsSimpleButton {
 		if(val != value, {
 			value = val;
 			this.prUpdateStringAndColors;
-			action.value(value);
-			^val;
+			this.action.();
 		});
-	}
-
-	backgroundColor_ {
-	}
-
-	textColor_ {
 	}
 
 	prUpdateStringAndColors {
@@ -1190,140 +1062,32 @@ WsButton : WsSimpleButton {
 	}
 }
 
-WsStaticText : WsWidget{
-	var ws, <bounds;
-	var <id;
+WsStaticText : WsWidget {
 
-	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
 	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).init;
+		^super.new.add(wsGUI, bounds, \text, sendNow: true);
 	}
 
-	init {
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		id = ws.addWidget(nil, \text, {}, IdentityDictionary.new.put(\bounds, bounds));
-	}
-
-	action_ {|function|
-		^ws.guiObjects[id][1] = function;
-	}
-
-	action {
-		^ws.guiObjects[id][1];
-	}
-
-	backgroundColor_ {|color|
-		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
-			ws.guiObjects[id][0].put(\backgroundColor, color);
-		}, {
-			ws.guiObjects[id][0][\backgroundColor] = color;
-		});
-		ws.updateWidget(id, \backgroundColor);
-		// ^color;
-	}
-
-	backgroundColor {
-		^ws.guiObjects[id][0][\backgroundColor];
-	}
-
-	textColor_ {|color|
-		if(ws.guiObjects[id][0][\textColor].isNil, {
-			ws.guiObjects[id][0].put(\textColor, color);
-		}, {
-			ws.guiObjects[id][0][\textColor] = color;
-		});
-		ws.updateWidget(id, \textColor);
-		// ^color;
-	}
-
-	textColor {
-		^ws.guiObjects[id][0][\textColor];
-	}
-
-	font_ {|font|
-		if(ws.guiObjects[id][0][\font].isNil, {
-			ws.guiObjects[id][0].put(\font, font);
-		}, {
-			ws.guiObjects[id][0][\font] = font;
-		});
-		ws.updateWidget(id, \font);
-		// ^font;
-	}
-
-	font {
-		^ws.guiObjects[id][0][\font];
-	}
-
-	textAlign_ {|align|
- 		if(ws.guiObjects[id][0][\textAlign].isNil, {
-			ws.guiObjects[id][0].put(\textAlign, align);
-		}, {
-			ws.guiObjects[id][0][\textAlign] = align;
-		});
-		ws.updateWidget(id, \textAlign);
-		// ^align;
-	}
-
-	textAlign {
-		^ws.guiObjects[id][0][\textAlign];
-	}
-
-	css_ {|cssString|
- 		if(ws.guiObjects[id][0][\css].isNil, {
-			ws.guiObjects[id][0].put(\css, cssString);
-		}, {
-			ws.guiObjects[id][0][\css] = cssString;
-		});
-		ws.updateWidget(id, \css);
-		// ^cssString;
-	}
-
-	css {
-		^ws.guiObjects[id][0][\css];
-	}
-
-	controlSpec_ {|spec|
-		^ws.guiObjects[id][2] = spec;
-	}
-
-	controlSpec {
-		^ws.guiObjects[id][2];
-	}
-
-	string_ {|thisString|
-		thisString = thisString.replace("\n", "<br>");//convert newline for html
- 		if(ws.guiObjects[id][0][\innerHTML].isNil, {
-			ws.guiObjects[id][0].put(\innerHTML, thisString);
-		}, {
-			ws.guiObjects[id][0][\innerHTML] = thisString;
-		});
-		ws.updateWidget(id, \innerHTML);
-		// ^thisString;
-	}
-
-	string {
-		^ws.guiObjects[id][0][\innerHTML];
-	}
-
-	remove {
-		ws.removeWidget(id);
+	// doesn't send to page, just inits the object
+	*init { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \text, sendNow: false);
 	}
 }
 
-WsImage : WsWidget{
-	var ws, <bounds, <path;
-	var <id;
+WsImage : WsWidget {
+	var <path;
 
 	*new {|wsGUI, bounds, path|
-		^super.newCopyArgs(wsGUI, bounds, path).init;
+		^super.new.add(wsGUI, bounds, \image, sendNow: true).addPath(path);
 	}
 
-	init {
-		var paramsDict;
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		paramsDict = IdentityDictionary.new.put(\bounds, bounds);
-		path !? {paramsDict.put(\src, path)};
-		id = ws.addWidget(nil, \image, {}, paramsDict);
+	// doesn't send to page, just inits the object
+	*init { |wsGUI, bounds, path|
+		^super.new.add(wsGUI, bounds, \image, sendNow: false).addPath(path);
+	}
+
+	addPath { |path|
+		path !? { ws.guiObjects[id][0].put(\src, path) };
 	}
 
 	path_ {|newPath, isURL = false|
@@ -1334,114 +1098,22 @@ WsImage : WsWidget{
 		}, {
 			relPath = ws.createImageLink(newPath, id);
 		});
-		if(ws.guiObjects[id][0][\src].isNil, {
-			ws.guiObjects[id][0].put(\src, relPath);
-		}, {
-			ws.guiObjects[id][0][\src] = relPath;
-		});
+		ws.guiObjects[id][0].put(\src, relPath);
 		ws.updateWidget(id, \src);
-	}
-
-	action_ {|function|
-		^ws.guiObjects[id][1] = function;
-	}
-
-	action {
-		^ws.guiObjects[id][1];
-	}
-
-	css_ {|cssString|
- 		if(ws.guiObjects[id][0][\css].isNil, {
-			ws.guiObjects[id][0].put(\css, cssString);
-		}, {
-			ws.guiObjects[id][0][\css] = cssString;
-		});
-		ws.updateWidget(id, \css);
-		// ^cssString;
-	}
-
-	css {
-		^ws.guiObjects[id][0][\css];
-	}
-
-	controlSpec_ {|spec|
-		^ws.guiObjects[id][2] = spec;
-	}
-
-	controlSpec {
-		^ws.guiObjects[id][2];
-	}
-
-	remove {
-		ws.removeWidget(id);
 	}
 }
 
+// TODO: reevaluate the difference between this and EZSlider
 WsSlider : WsWidget {
-	var ws, <bounds;
-	var <id;
-	var function, prFunction;
 
-	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
-	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).init;
+	*new { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \slider, sendNow: true);
 	}
 
-	init {
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds));
-		function = {};
-		prFunction = {
-			function.value(this);
-		};
-		ws.guiObjects[id][1] = prFunction;
+	// doesn't send to page, just inits the object
+	*init { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \slider, sendNow: false);
 	}
-
-	action_ {|func|
-		// ^ws.guiObjects[id][1] = function;
-		^function = func;
-	}
-
-	action {
-		// ^ws.guiObjects[id][1];
-		^function;
-	}
-
-	// backgroundColor_ {|color|
-	// 	if(ws.guiObjects[id][0][\backgroundColor].isNil, {
-	// 		ws.guiObjects[id][0].put(\backgroundColor, color);
-	// 	}, {
-	// 		ws.guiObjects[id][0][\backgroundColor] = color;
-	// 	});
-	// 	ws.updateWidget(id);
-	// 	// ^color;
-	// }
-
-	// backgroundColor {
-	// 	^ws.guiObjects[id][0][\backgroundColor];
-	// }
-
-	css_ {|cssString|
- 		if(ws.guiObjects[id][0][\css].isNil, {
-			ws.guiObjects[id][0].put(\css, cssString);
-		}, {
-			ws.guiObjects[id][0][\css] = cssString;
-		});
-		ws.updateWidget(id, \css);
-		// ^cssString;
-	}
-
-	css {
-		^ws.guiObjects[id][0][\css];
-	}
-
-	// controlSpec_ {|spec|
-	// 	^ws.guiObjects[id][2] = spec;
-	// }
-
-	// controlSpec {
-	// 	^ws.guiObjects[id][2];
-	// }
 
 	value_ {|val|
  		if(ws.guiObjects[id][0][\value].isNil, {
@@ -1450,7 +1122,6 @@ WsSlider : WsWidget {
 			ws.guiObjects[id][0][\value] = ws.guiObjects[id][2].unmap(val);
 		});
 		ws.updateWidget(id, \value);
-		^val;
 	}
 
 	value {
@@ -1459,232 +1130,39 @@ WsSlider : WsWidget {
 
 	valueAction_ {|val|
 		this.value_(val);
-		function.value(this);
+		this.action.();
 		^val;
 	}
-
-	remove {
-		ws.removeWidget(id);
-	}
-
 }
 
-WsEZSlider : WsWidget { //this should later be implemented as call to WsSlider and WsStaticText for label and value
-	var ws, <bounds;
-	var <id;
-	var function, prFunction;
-
-	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).init;
-	}
-
-	init {
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds));
-		function = {};
-		prFunction = {
-			function.value(this);
-		};
-		ws.guiObjects[id][1] = prFunction;
-	}
-
-	action_ {|func|
-		// ^ws.guiObjects[id][1] = function;
-		^function = func;
-	}
-
-	action {
-		// ^ws.guiObjects[id][1];
-		^function;
-	}
-
-	// backgroundColor_ {|color|
-	// 	if(ws.guiObjects[id][0][\backgroundColor].isNil, {
-	// 		ws.guiObjects[id][0].put(\backgroundColor, color);
-	// 	}, {
-	// 		ws.guiObjects[id][0][\backgroundColor] = color;
-	// 	});
-	// 	ws.updateWidget(id);
-	// 	// ^color;
-	// }
-
-	// backgroundColor {
-	// 	^ws.guiObjects[id][0][\backgroundColor];
-	// }
-
-	css_ {|cssString|
- 		if(ws.guiObjects[id][0][\css].isNil, {
-			ws.guiObjects[id][0].put(\css, cssString);
-		}, {
-			ws.guiObjects[id][0][\css] = cssString;
-		});
-		ws.updateWidget(id, \css);
-		// ^cssString;
-	}
-
-	css {
-		^ws.guiObjects[id][0][\css];
-	}
-
-	controlSpec_ {|spec| //how to update dictionary with min and max on change?
-		^ws.guiObjects[id][2] = spec;
-	}
-
-	controlSpec {
-		^ws.guiObjects[id][2];
-	}
-
-	value_ {|val|
- 		if(ws.guiObjects[id][0][\value].isNil, {
-			ws.guiObjects[id][0].put(\value, ws.guiObjects[id][2].unmap(val));
-		}, {
-			ws.guiObjects[id][0][\value] = ws.guiObjects[id][2].unmap(val);
-		});
-		ws.updateWidget(id, \value);
-		^val;
-	}
-
-	value {
-		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
-	}
-
-	valueAction_ {|val|
-		this.value_(val);
-		function.value(this);
-		^val;
-	}
-
-	remove {
-		ws.removeWidget(id);
-	}
+WsEZSlider : WsSlider { //this should later be implemented as call to WsSlider and WsStaticText for label and value
 
 }
 
 WsPopUpMenu : WsWidget {
-	var ws, <bounds;
-	var <id;
-	var function, prFunction;
 
-	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
-	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).init;
+	*new { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \menu, sendNow: true);
 	}
 
-	init {
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		id = ws.addWidget(nil, \menu, {}, IdentityDictionary.new.put(\bounds, bounds));
-		function = {};
-		prFunction = {
-			function.value(this);
-		};
-		ws.guiObjects[id][1] = prFunction;
+	// doesn't send to page, just inits the object
+	*init { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \menu, sendNow: false);
 	}
 
 	items_ {|itemArr|
-		// thisString = thisString.replace("\n", "<br>");//convert newline for html
-		// itemString = "".ccatList(itemArr).copyToEnd(2)
- 		if(ws.guiObjects[id][0][\menuItems].isNil, {
+		if(ws.guiObjects[id][0][\menuItems].isNil, {
 			ws.guiObjects[id][0].put(\menuItems, itemArr);
 		}, {
 			ws.guiObjects[id][0][\menuItems] = itemArr;
 		});
 		ws.updateWidget(id);
-		//init value to the first item
-		this.value_(0);
-		// ^thisString;
+		this.value_(0); // init value to the first item
 	}
 
 	items {
 		^ws.guiObjects[id][0][\menuItems];
 	}
-
-	action_ {|func|
-		// ^ws.guiObjects[id][1] = function;
-		^function = func;
-	}
-
-	action {
-		// ^ws.guiObjects[id][1];
-		^function;
-	}
-
-	backgroundColor_ {|color|
-		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
-			ws.guiObjects[id][0].put(\backgroundColor, color);
-		}, {
-			ws.guiObjects[id][0][\backgroundColor] = color;
-		});
-		ws.updateWidget(id, \backgroundColor);
-		// ^color;
-	}
-
-	backgroundColor {
-		^ws.guiObjects[id][0][\backgroundColor];
-	}
-
-	textColor_ {|color|
-		if(ws.guiObjects[id][0][\textColor].isNil, {
-			ws.guiObjects[id][0].put(\textColor, color);
-		}, {
-			ws.guiObjects[id][0][\textColor] = color;
-		});
-		ws.updateWidget(id, \textColor);
-		// ^color;
-	}
-
-	textColor {
-		^ws.guiObjects[id][0][\textColor];
-	}
-
-	font_ {|font|
-		if(ws.guiObjects[id][0][\font].isNil, {
-			ws.guiObjects[id][0].put(\font, font);
-		}, {
-			ws.guiObjects[id][0][\font] = font;
-		});
-		ws.updateWidget(id, \font);
-		// ^font;
-	}
-
-	font {
-		^ws.guiObjects[id][0][\font];
-	}
-
-	textAlign_ {|align|
- 		if(ws.guiObjects[id][0][\textAlign].isNil, {
-			ws.guiObjects[id][0].put(\textAlign, align);
-		}, {
-			ws.guiObjects[id][0][\textAlign] = align;
-		});
-		ws.updateWidget(id, \textAlign);
-		// ^align;
-	}
-
-	textAlign {
-		^ws.guiObjects[id][0][\textAlign];
-	}
-
-	css_ {|cssString|
- 		if(ws.guiObjects[id][0][\css].isNil, {
-			ws.guiObjects[id][0].put(\css, cssString);
-		}, {
-			ws.guiObjects[id][0][\css] = cssString;
-		});
-		ws.updateWidget(id, \css);
-		// ^cssString;
-	}
-
-	css {
-		^ws.guiObjects[id][0][\css];
-	}
-
-	// controlSpec_ {|spec| //how to update dictionary with min and max on change?
-	// 	^ws.guiObjects[id][2] = spec;
-	// }
-
-	// controlSpec {
-	// 	^ws.guiObjects[id][2];
-	// }
 
 	value_ {|val|
  		if(ws.guiObjects[id][0][\value].isNil, {
@@ -1702,87 +1180,23 @@ WsPopUpMenu : WsWidget {
 
 	valueAction_ {|val|
 		this.value_(val);
-		function.value(this);
-		^val;
+		this.action.();
 	}
-
-	// item_ {|itemString|
-	// 	^this.value(ws.guiObjects[id][0][\menuItems].indexOf(itemString)); //that would require using only symbols or iteration... leaving out for now
-	// }
 
 	item {
 		^ws.guiObjects[id][0][\menuItems][ws.guiObjects[id][0][\value].asInteger];
 	}
-
-	remove {
-		ws.removeWidget(id);
-	}
 }
 
 WsCheckbox : WsWidget {
-	var ws, <bounds;
-	var <id;
-	var function, prFunction;
 
-	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
-	*new {|wsGUI, bounds|
-		^super.newCopyArgs(wsGUI, bounds).init;
+	*new { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \checkbox, sendNow: true);
 	}
 
-	init {
-		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
-		id = ws.addWidget(nil, \checkbox, {}, IdentityDictionary.new.put(\bounds, bounds));
-		function = {};
-		prFunction = {
-			function.value(this);
-		};
-		ws.guiObjects[id][1] = prFunction;
-	}
-
-	action_ {|func|
-		// ^ws.guiObjects[id][1] = function;
-		^function = func;
-	}
-
-	action {
-		// ^ws.guiObjects[id][1];
-		^function;
-	}
-
-	backgroundColor_ {|color|
-		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
-			ws.guiObjects[id][0].put(\backgroundColor, color);
-		}, {
-			ws.guiObjects[id][0][\backgroundColor] = color;
-		});
-		ws.updateWidget(id);
-		// ^color;
-	}
-
-	backgroundColor {
-		^ws.guiObjects[id][0][\backgroundColor];
-	}
-
-	css_ {|cssString|
- 		if(ws.guiObjects[id][0][\css].isNil, {
-			ws.guiObjects[id][0].put(\css, cssString);
-		}, {
-			ws.guiObjects[id][0][\css] = cssString;
-		});
-		ws.updateWidget(id, \css);
-		// ^cssString;
-	}
-
-	css {
-		^ws.guiObjects[id][0][\css];
-	}
-
-	controlSpec_ {|spec| //how to update dictionary with min and max on change?
-		^ws.guiObjects[id][2] = spec;
-	}
-
-	controlSpec {
-		^ws.guiObjects[id][2];
+	// doesn't send to page, just inits the object
+	*init { |wsGUI, bounds|
+		^super.new.add(wsGUI, bounds, \checkbox, sendNow: false);
 	}
 
 	value_ {|val|
@@ -1802,18 +1216,16 @@ WsCheckbox : WsWidget {
 
 	valueAction_ {|val|
 		this.value_(val);
-		function.value(this);
-		^val;
-	}
-
-	remove {
-		ws.removeWidget(id);
+		this.action.();
 	}
 }
 
-/* -------------------
+/*
+--------------------------------------
 	Layouts
+--------------------------------------
 */
+
 WsLayout {}
 
 WsHLayout : WsLayout {
@@ -1836,6 +1248,1142 @@ WsVLayout : WsLayout {
 
 }
 
+// mtm adding init vs. new functionality
+// WsWidget { }
+
+// WsSimpleButton : WsWidget {
+// 	var ws, <bounds;
+// 	var <id;
+//
+// 	// *new {|wsGUI, bounds|
+// 	// 	^super.newCopyArgs(wsGUI, bounds).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds));
+// 	// }
+//
+// 	// begin mtm edit
+//
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	// doesn't send to page, just inits the object
+// 	// TODO: change so wsGUI isn't necessary at this stage
+// 	*init { |wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 		id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
+// 	}
+//
+// 	addDontSend {
+// 		// note: instance var for bounds not set for layout to auto-layout
+// 		id = ws.addWidget(
+// 			nil, \button, {},
+// 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
+// 			sendNow: false
+// 		);
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+// 	action_ {|function|
+// 		^ws.guiObjects[id][1] = function;
+// 	}
+//
+// 	action {
+// 		^ws.guiObjects[id][1];
+// 	}
+//
+// 	backgroundColor_ {|color|
+// 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+// 			ws.guiObjects[id][0].put(\backgroundColor, color);
+// 			}, {
+// 				ws.guiObjects[id][0][\backgroundColor] = color;
+// 		});
+// 		ws.updateWidget(id, \backgroundColor);
+// 		// ^color;
+// 	}
+//
+// 	backgroundColor {
+// 		^ws.guiObjects[id][0][\backgroundColor];
+// 	}
+//
+// 	textColor_ {|color|
+// 		if(ws.guiObjects[id][0][\textColor].isNil, {
+// 			ws.guiObjects[id][0].put(\textColor, color);
+// 			}, {
+// 				ws.guiObjects[id][0][\textColor] = color;
+// 		});
+// 		ws.updateWidget(id, \textColor);
+// 		// ^color;
+// 	}
+//
+// 	textColor {
+// 		^ws.guiObjects[id][0][\textColor];
+// 	}
+//
+// 	font_ {|font|
+// 		if(ws.guiObjects[id][0][\font].isNil, {
+// 			ws.guiObjects[id][0].put(\font, font);
+// 			}, {
+// 				ws.guiObjects[id][0][\font] = font;
+// 		});
+// 		ws.updateWidget(id, \textColor);
+// 		// ^font;
+// 	}
+//
+// 	font {
+// 		^ws.guiObjects[id][0][\font];
+// 	}
+//
+// 	textAlign_ {|align|
+// 		if(ws.guiObjects[id][0][\textAlign].isNil, {
+// 			ws.guiObjects[id][0].put(\textAlign, align);
+// 			}, {
+// 				ws.guiObjects[id][0][\textAlign] = align;
+// 		});
+// 		ws.updateWidget(id, \textAlign);
+// 		// ^align;
+// 	}
+//
+// 	textAlign {
+// 		^ws.guiObjects[id][0][\textAlign];
+// 	}
+//
+// 	css_ {|cssString|
+// 		if(ws.guiObjects[id][0][\css].isNil, {
+// 			ws.guiObjects[id][0].put(\css, cssString);
+// 			}, {
+// 				ws.guiObjects[id][0][\css] = cssString;
+// 		});
+// 		ws.updateWidget(id, \css);
+// 		// ^cssString;
+// 	}
+//
+// 	css {
+// 		^ws.guiObjects[id][0][\css];
+// 	}
+//
+// 	controlSpec_ {|spec| //how to update dictionary with min and max on change?
+// 		^ws.guiObjects[id][2] = spec;
+// 	}
+//
+// 	controlSpec {
+// 		^ws.guiObjects[id][2];
+// 	}
+//
+// 	string_ {|thisString|
+// 		thisString = thisString.replace("\n", "<br>");//convert newline for html
+// 		if(ws.guiObjects[id][0][\innerHTML].isNil, {
+// 			ws.guiObjects[id][0].put(\innerHTML, thisString);
+// 			}, {
+// 				ws.guiObjects[id][0][\innerHTML] = thisString;
+// 		});
+// 		ws.updateWidget(id, \innerHTML);
+// 		// ^thisString;
+// 	}
+//
+// 	string {
+// 		^ws.guiObjects[id][0][\innerHTML];
+// 	}
+//
+// 	remove {
+// 		ws.removeWidget(id);
+// 	}
+// }
+
+// WsButton : WsSimpleButton {
+// 	// var ws, <bounds;
+// 	// var <id;
+// 	var id, <value = 0, <numStates = 0, <states, <>action;
+//
+// 	// *new {|wsGUI, bounds|
+// 	// 	^super.newCopyArgs(wsGUI, bounds).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	// bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	// id = ws.addWidget(nil, \button, {}, IdentityDictionary.new.put(\bounds, bounds));
+// 	// 	super.init;
+// 	// 	id = super.id;
+// 	// 	action = {};
+// 	// 	super.action_({
+// 	// 		value = (value + 1) % numStates;
+// 	// 		this.prUpdateStringAndColors;
+// 	// 		action.value(this);
+// 	// 	});
+// 	// }
+//
+// 	// begin mtm edit
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	*init {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		super.addAndSend;
+// 		id = super.id;
+// 		action = {};
+// 		super.action_({
+// 			value = (value + 1) % numStates;
+// 			this.prUpdateStringAndColors;
+// 			action.value(this);
+// 		});
+// 	}
+//
+// 	addDontSend {
+// 		super.addDontSend;
+// 		id = super.id;
+// 		action = {};
+// 		super.action_({
+// 			value = (value + 1) % numStates;
+// 			this.prUpdateStringAndColors;
+// 			action.value(this);
+// 		});
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+// 	string_ {
+// 	}
+//
+// 	string {
+// 	}
+//
+// 	states_ {|statesArray|
+// 		states = statesArray;
+// 		numStates = states.size;
+// 		this.prUpdateStringAndColors;
+// 	}
+//
+// 	value_ {|val|
+// 		value = val;
+// 		this.prUpdateStringAndColors;
+// 		^value;
+// 	}
+//
+// 	item {
+// 		^states[value][0];
+// 	}
+//
+// 	valueAction_ {|val|
+// 		if(val != value, {
+// 			value = val;
+// 			this.prUpdateStringAndColors;
+// 			action.value(value);
+// 			^val;
+// 		});
+// 	}
+//
+// 	backgroundColor_ {
+// 	}
+//
+// 	textColor_ {
+// 	}
+//
+// 	prUpdateStringAndColors {
+// 		super.string_(states[value][0]);
+// 		super.textColor_(states[value][1]);
+// 		super.backgroundColor_(states[value][2]);
+// 	}
+// }
+
+// WsStaticText : WsWidget {
+// 	var ws, <bounds;
+// 	var <id;
+//
+// 	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
+// 	// *new {|wsGUI, bounds|
+// 	// 	^super.newCopyArgs(wsGUI, bounds).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	id = ws.addWidget(nil, \text, {}, IdentityDictionary.new.put(\bounds, bounds));
+// 	// }
+//
+// 	// begin mtm edit
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	// doesn't send to page, just inits the object
+// 	// TODO: change so wsGUI isn't necessary at this stage
+// 	*init { |wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 		id = ws.addWidget(nil, \text, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
+// 	}
+//
+// 	addDontSend {
+// 		// note: instance var for bounds not set for layout to auto-layout
+// 		id = ws.addWidget( nil, \text, {},
+// 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
+// 			sendNow: false
+// 		);
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+// 	action_ {|function|
+// 		^ws.guiObjects[id][1] = function;
+// 	}
+//
+// 	action {
+// 		^ws.guiObjects[id][1];
+// 	}
+//
+// 	backgroundColor_ {|color|
+// 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+// 			ws.guiObjects[id][0].put(\backgroundColor, color);
+// 			}, {
+// 				ws.guiObjects[id][0][\backgroundColor] = color;
+// 		});
+// 		ws.updateWidget(id, \backgroundColor);
+// 		// ^color;
+// 	}
+//
+// 	backgroundColor {
+// 		^ws.guiObjects[id][0][\backgroundColor];
+// 	}
+//
+// 	textColor_ {|color|
+// 		if(ws.guiObjects[id][0][\textColor].isNil, {
+// 			ws.guiObjects[id][0].put(\textColor, color);
+// 			}, {
+// 				ws.guiObjects[id][0][\textColor] = color;
+// 		});
+// 		ws.updateWidget(id, \textColor);
+// 		// ^color;
+// 	}
+//
+// 	textColor {
+// 		^ws.guiObjects[id][0][\textColor];
+// 	}
+//
+// 	font_ {|font|
+// 		if(ws.guiObjects[id][0][\font].isNil, {
+// 			ws.guiObjects[id][0].put(\font, font);
+// 			}, {
+// 				ws.guiObjects[id][0][\font] = font;
+// 		});
+// 		ws.updateWidget(id, \font);
+// 		// ^font;
+// 	}
+//
+// 	font {
+// 		^ws.guiObjects[id][0][\font];
+// 	}
+//
+// 	textAlign_ {|align|
+// 		if(ws.guiObjects[id][0][\textAlign].isNil, {
+// 			ws.guiObjects[id][0].put(\textAlign, align);
+// 			}, {
+// 				ws.guiObjects[id][0][\textAlign] = align;
+// 		});
+// 		ws.updateWidget(id, \textAlign);
+// 		// ^align;
+// 	}
+//
+// 	textAlign {
+// 		^ws.guiObjects[id][0][\textAlign];
+// 	}
+//
+// 	css_ {|cssString|
+// 		if(ws.guiObjects[id][0][\css].isNil, {
+// 			ws.guiObjects[id][0].put(\css, cssString);
+// 			}, {
+// 				ws.guiObjects[id][0][\css] = cssString;
+// 		});
+// 		ws.updateWidget(id, \css);
+// 		// ^cssString;
+// 	}
+//
+// 	css {
+// 		^ws.guiObjects[id][0][\css];
+// 	}
+//
+// 	controlSpec_ {|spec|
+// 		^ws.guiObjects[id][2] = spec;
+// 	}
+//
+// 	controlSpec {
+// 		^ws.guiObjects[id][2];
+// 	}
+//
+// 	string_ {|thisString|
+// 		thisString = thisString.replace("\n", "<br>");//convert newline for html
+// 		if(ws.guiObjects[id][0][\innerHTML].isNil, {
+// 			ws.guiObjects[id][0].put(\innerHTML, thisString);
+// 			}, {
+// 				ws.guiObjects[id][0][\innerHTML] = thisString;
+// 		});
+// 		ws.updateWidget(id, \innerHTML);
+// 		// ^thisString;
+// 	}
+//
+// 	string {
+// 		^ws.guiObjects[id][0][\innerHTML];
+// 	}
+//
+// 	remove {
+// 		ws.removeWidget(id);
+// 	}
+// }
+
+// WsImage : WsWidget{
+// 	var ws, <bounds, <path;
+// 	var <id;
+//
+// 	// *new {|wsGUI, bounds, path|
+// 	// 	^super.newCopyArgs(wsGUI, bounds, path).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	var paramsDict;
+// 	// 	bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	paramsDict = IdentityDictionary.new.put(\bounds, bounds);
+// 	// 	path !? {paramsDict.put(\src, path)};
+// 	// 	id = ws.addWidget(nil, \image, {}, paramsDict);
+// 	// }
+//
+// 	// begin mtm edit
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	// doesn't send to page, just inits the object
+// 	// TODO: change so wsGUI isn't necessary at this stage
+// 	*init { |wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		var paramsDict;
+// 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 		paramsDict = IdentityDictionary.new.put(\bounds, bounds);
+// 		path !? {paramsDict.put(\src, path)};
+// 		id = ws.addWidget(nil, \image, {}, paramsDict, sendNow: true);
+// 	}
+//
+// 	addDontSend {
+// 		var paramsDict;
+// 		// note: instance var for bounds not set for layout to auto-layout
+// 		paramsDict = IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1););
+// 		path !? {paramsDict.put(\src, path)};
+// 		id = ws.addWidget( nil, \image, {}, paramsDict, sendNow: false );
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+// 	path_ {|newPath, isURL = false|
+// 		var relPath;
+// 		path = newPath;
+// 		if(isURL, {
+// 			relPath = newPath;
+// 			}, {
+// 				relPath = ws.createImageLink(newPath, id);
+// 		});
+// 		if(ws.guiObjects[id][0][\src].isNil, {
+// 			ws.guiObjects[id][0].put(\src, relPath);
+// 			}, {
+// 				ws.guiObjects[id][0][\src] = relPath;
+// 		});
+// 		ws.updateWidget(id, \src);
+// 	}
+//
+// 	action_ {|function|
+// 		^ws.guiObjects[id][1] = function;
+// 	}
+//
+// 	action {
+// 		^ws.guiObjects[id][1];
+// 	}
+//
+// 	css_ {|cssString|
+// 		if(ws.guiObjects[id][0][\css].isNil, {
+// 			ws.guiObjects[id][0].put(\css, cssString);
+// 			}, {
+// 				ws.guiObjects[id][0][\css] = cssString;
+// 		});
+// 		ws.updateWidget(id, \css);
+// 		// ^cssString;
+// 	}
+//
+// 	css {
+// 		^ws.guiObjects[id][0][\css];
+// 	}
+//
+// 	controlSpec_ {|spec|
+// 		^ws.guiObjects[id][2] = spec;
+// 	}
+//
+// 	controlSpec {
+// 		^ws.guiObjects[id][2];
+// 	}
+//
+// 	remove {
+// 		ws.removeWidget(id);
+// 	}
+// }
+
+// WsSlider : WsWidget {
+// 	var ws, <bounds;
+// 	var <id;
+// 	var function, prFunction;
+//
+// 	//	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
+// 	// *new {|wsGUI, bounds|
+// 	// 	^super.newCopyArgs(wsGUI, bounds).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds));
+// 	// 	function = {};
+// 	// 	prFunction = {
+// 	// 		function.value(this);
+// 	// 	};
+// 	// 	ws.guiObjects[id][1] = prFunction;
+// 	// }
+//
+// 	// begin mtm edit
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	// doesn't send to page, just inits the object
+// 	// TODO: change so wsGUI isn't necessary at this stage
+// 	*init { |wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 		id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
+// 		function = {};
+// 		prFunction = { function.value(this) };
+// 		ws.guiObjects[id][1] = prFunction;
+// 	}
+//
+// 	addDontSend {
+// 		// note: instance var for bounds not set for layout to auto-layout
+// 		id = ws.addWidget( nil, \slider, {},
+// 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
+// 			sendNow: false
+// 		);
+// 		function = {};
+// 		prFunction = { function.value(this) };
+// 		ws.guiObjects[id][1] = prFunction;
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+// 	action_ {|func|
+// 		// ^ws.guiObjects[id][1] = function;
+// 		^function = func;
+// 	}
+//
+// 	action {
+// 		// ^ws.guiObjects[id][1];
+// 		^function;
+// 	}
+//
+// 	// backgroundColor_ {|color|
+// 	// 	if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+// 	// 		ws.guiObjects[id][0].put(\backgroundColor, color);
+// 	// 	}, {
+// 	// 		ws.guiObjects[id][0][\backgroundColor] = color;
+// 	// 	});
+// 	// 	ws.updateWidget(id);
+// 	// 	// ^color;
+// 	// }
+//
+// 	// backgroundColor {
+// 	// 	^ws.guiObjects[id][0][\backgroundColor];
+// 	// }
+//
+// 	css_ {|cssString|
+// 		if(ws.guiObjects[id][0][\css].isNil, {
+// 			ws.guiObjects[id][0].put(\css, cssString);
+// 			}, {
+// 				ws.guiObjects[id][0][\css] = cssString;
+// 		});
+// 		ws.updateWidget(id, \css);
+// 		// ^cssString;
+// 	}
+//
+// 	css {
+// 		^ws.guiObjects[id][0][\css];
+// 	}
+//
+// 	// controlSpec_ {|spec|
+// 	// 	^ws.guiObjects[id][2] = spec;
+// 	// }
+//
+// 	// controlSpec {
+// 	// 	^ws.guiObjects[id][2];
+// 	// }
+//
+// 	value_ {|val|
+// 		if(ws.guiObjects[id][0][\value].isNil, {
+// 			ws.guiObjects[id][0].put(\value, ws.guiObjects[id][2].unmap(val)); //should not unmap here
+// 			}, {
+// 				ws.guiObjects[id][0][\value] = ws.guiObjects[id][2].unmap(val);
+// 		});
+// 		ws.updateWidget(id, \value);
+// 		^val;
+// 	}
+//
+// 	value {
+// 		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
+// 	}
+//
+// 	valueAction_ {|val|
+// 		this.value_(val);
+// 		function.value(this);
+// 		^val;
+// 	}
+//
+// 	remove {
+// 		ws.removeWidget(id);
+// 	}
+//
+// }
+
+// WsEZSlider : WsWidget { //this should later be implemented as call to WsSlider and WsStaticText for label and value
+// 	var ws, <bounds;
+// 	var <id;
+// 	var function, prFunction;
+//
+// 	// *new {|wsGUI, bounds|
+// 	// 	^super.newCopyArgs(wsGUI, bounds).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds));
+// 	// 	function = {};
+// 	// 	prFunction = {
+// 	// 		function.value(this);
+// 	// 	};
+// 	// 	ws.guiObjects[id][1] = prFunction;
+// 	// }
+//
+// 	// begin mtm edit
+//
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	// doesn't send to page, just inits the object
+// 	// TODO: change so wsGUI isn't necessary at this stage
+// 	*init { |wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 		id = ws.addWidget(nil, \slider, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
+// 		function = {};
+// 		prFunction = {
+// 			function.value(this);
+// 		};
+// 		ws.guiObjects[id][1] = prFunction;
+// 	}
+//
+// 	addDontSend {
+// 		// note: instance var for bounds not set for layout to auto-layout
+// 		id = ws.addWidget( nil, \slider, {},
+// 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
+// 			sendNow: false
+// 		);
+// 		function = {};
+// 		prFunction = {
+// 			function.value(this);
+// 		};
+// 		ws.guiObjects[id][1] = prFunction
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+//
+// 	action_ {|func|
+// 		// ^ws.guiObjects[id][1] = function;
+// 		^function = func;
+// 	}
+//
+// 	action {
+// 		// ^ws.guiObjects[id][1];
+// 		^function;
+// 	}
+//
+// 	// backgroundColor_ {|color|
+// 	// 	if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+// 	// 		ws.guiObjects[id][0].put(\backgroundColor, color);
+// 	// 	}, {
+// 	// 		ws.guiObjects[id][0][\backgroundColor] = color;
+// 	// 	});
+// 	// 	ws.updateWidget(id);
+// 	// 	// ^color;
+// 	// }
+//
+// 	// backgroundColor {
+// 	// 	^ws.guiObjects[id][0][\backgroundColor];
+// 	// }
+//
+// 	css_ {|cssString|
+// 		if(ws.guiObjects[id][0][\css].isNil, {
+// 			ws.guiObjects[id][0].put(\css, cssString);
+// 			}, {
+// 				ws.guiObjects[id][0][\css] = cssString;
+// 		});
+// 		ws.updateWidget(id, \css);
+// 		// ^cssString;
+// 	}
+//
+// 	css {
+// 		^ws.guiObjects[id][0][\css];
+// 	}
+//
+// 	controlSpec_ {|spec| //how to update dictionary with min and max on change?
+// 		^ws.guiObjects[id][2] = spec;
+// 	}
+//
+// 	controlSpec {
+// 		^ws.guiObjects[id][2];
+// 	}
+//
+// 	value_ {|val|
+// 		if(ws.guiObjects[id][0][\value].isNil, {
+// 			ws.guiObjects[id][0].put(\value, ws.guiObjects[id][2].unmap(val));
+// 			}, {
+// 				ws.guiObjects[id][0][\value] = ws.guiObjects[id][2].unmap(val);
+// 		});
+// 		ws.updateWidget(id, \value);
+// 		^val;
+// 	}
+//
+// 	value {
+// 		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
+// 	}
+//
+// 	valueAction_ {|val|
+// 		this.value_(val);
+// 		function.value(this);
+// 		^val;
+// 	}
+//
+// 	remove {
+// 		ws.removeWidget(id);
+// 	}
+//
+// }
+
+// WsPopUpMenu : WsWidget {
+// 	var ws, <bounds;
+// 	var <id;
+// 	var function, prFunction;
+//
+// 	// //	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
+// 	// *new {|wsGUI, bounds|
+// 	// 	^super.newCopyArgs(wsGUI, bounds).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	id = ws.addWidget(nil, \menu, {}, IdentityDictionary.new.put(\bounds, bounds));
+// 	// 	function = {};
+// 	// 	prFunction = {
+// 	// 		function.value(this);
+// 	// 	};
+// 	// 	ws.guiObjects[id][1] = prFunction;
+// 	// }
+//
+// 	// begin mtm edit
+//
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	// doesn't send to page, just inits the object
+// 	// TODO: change so wsGUI isn't necessary at this stage
+// 	*init { |wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 		id = ws.addWidget(nil, \menu, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
+// 		function = {};
+// 		prFunction = {
+// 			function.value(this);
+// 		};
+// 		ws.guiObjects[id][1] = prFunction;
+// 	}
+//
+// 	addDontSend {
+// 		// note: instance var for bounds not set for layout to auto-layout
+// 		id = ws.addWidget( nil, \menu, {},
+// 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
+// 			sendNow: false
+// 		);
+// 		function = {};
+// 		prFunction = {
+// 			function.value(this);
+// 		};
+// 		ws.guiObjects[id][1] = prFunction
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+//
+// 	items_ {|itemArr|
+// 		// thisString = thisString.replace("\n", "<br>");//convert newline for html
+// 		// itemString = "".ccatList(itemArr).copyToEnd(2)
+// 		if(ws.guiObjects[id][0][\menuItems].isNil, {
+// 			ws.guiObjects[id][0].put(\menuItems, itemArr);
+// 			}, {
+// 				ws.guiObjects[id][0][\menuItems] = itemArr;
+// 		});
+// 		ws.updateWidget(id);
+// 		//init value to the first item
+// 		this.value_(0);
+// 		// ^thisString;
+// 	}
+//
+// 	items {
+// 		^ws.guiObjects[id][0][\menuItems];
+// 	}
+//
+// 	action_ {|func|
+// 		// ^ws.guiObjects[id][1] = function;
+// 		^function = func;
+// 	}
+//
+// 	action {
+// 		// ^ws.guiObjects[id][1];
+// 		^function;
+// 	}
+//
+// 	backgroundColor_ {|color|
+// 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+// 			ws.guiObjects[id][0].put(\backgroundColor, color);
+// 			}, {
+// 				ws.guiObjects[id][0][\backgroundColor] = color;
+// 		});
+// 		ws.updateWidget(id, \backgroundColor);
+// 		// ^color;
+// 	}
+//
+// 	backgroundColor {
+// 		^ws.guiObjects[id][0][\backgroundColor];
+// 	}
+//
+// 	textColor_ {|color|
+// 		if(ws.guiObjects[id][0][\textColor].isNil, {
+// 			ws.guiObjects[id][0].put(\textColor, color);
+// 			}, {
+// 				ws.guiObjects[id][0][\textColor] = color;
+// 		});
+// 		ws.updateWidget(id, \textColor);
+// 		// ^color;
+// 	}
+//
+// 	textColor {
+// 		^ws.guiObjects[id][0][\textColor];
+// 	}
+//
+// 	font_ {|font|
+// 		if(ws.guiObjects[id][0][\font].isNil, {
+// 			ws.guiObjects[id][0].put(\font, font);
+// 			}, {
+// 				ws.guiObjects[id][0][\font] = font;
+// 		});
+// 		ws.updateWidget(id, \font);
+// 		// ^font;
+// 	}
+//
+// 	font {
+// 		^ws.guiObjects[id][0][\font];
+// 	}
+//
+// 	textAlign_ {|align|
+// 		if(ws.guiObjects[id][0][\textAlign].isNil, {
+// 			ws.guiObjects[id][0].put(\textAlign, align);
+// 			}, {
+// 				ws.guiObjects[id][0][\textAlign] = align;
+// 		});
+// 		ws.updateWidget(id, \textAlign);
+// 		// ^align;
+// 	}
+//
+// 	textAlign {
+// 		^ws.guiObjects[id][0][\textAlign];
+// 	}
+//
+// 	css_ {|cssString|
+// 		if(ws.guiObjects[id][0][\css].isNil, {
+// 			ws.guiObjects[id][0].put(\css, cssString);
+// 			}, {
+// 				ws.guiObjects[id][0][\css] = cssString;
+// 		});
+// 		ws.updateWidget(id, \css);
+// 		// ^cssString;
+// 	}
+//
+// 	css {
+// 		^ws.guiObjects[id][0][\css];
+// 	}
+//
+// 	// controlSpec_ {|spec| //how to update dictionary with min and max on change?
+// 	// 	^ws.guiObjects[id][2] = spec;
+// 	// }
+//
+// 	// controlSpec {
+// 	// 	^ws.guiObjects[id][2];
+// 	// }
+//
+// 	value_ {|val|
+// 		if(ws.guiObjects[id][0][\value].isNil, {
+// 			ws.guiObjects[id][0].put(\value, val);
+// 			}, {
+// 				ws.guiObjects[id][0][\value] = val;
+// 		});
+// 		ws.updateWidget(id, \value);
+// 		^val;
+// 	}
+//
+// 	value {
+// 		^ws.guiObjects[id][0][\value].asInteger;
+// 	}
+//
+// 	valueAction_ {|val|
+// 		this.value_(val);
+// 		function.value(this);
+// 		^val;
+// 	}
+//
+// 	// item_ {|itemString|
+// 	// 	^this.value(ws.guiObjects[id][0][\menuItems].indexOf(itemString)); //that would require using only symbols or iteration... leaving out for now
+// 	// }
+//
+// 	item {
+// 		^ws.guiObjects[id][0][\menuItems][ws.guiObjects[id][0][\value].asInteger];
+// 	}
+//
+// 	remove {
+// 		ws.removeWidget(id);
+// 	}
+// }
+
+// WsCheckbox : WsWidget {
+// 	var ws, <bounds;
+// 	var <id;
+// 	var function, prFunction;
+//
+// 	// //	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec;
+// 	// *new {|wsGUI, bounds|
+// 	// 	^super.newCopyArgs(wsGUI, bounds).init;
+// 	// }
+// 	//
+// 	// init {
+// 	// 	bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 	// 	id = ws.addWidget(nil, \checkbox, {}, IdentityDictionary.new.put(\bounds, bounds));
+// 	// 	function = {};
+// 	// 	prFunction = {
+// 	// 		function.value(this);
+// 	// 	};
+// 	// 	ws.guiObjects[id][1] = prFunction;
+// 	// }
+//
+// 	// begin mtm edit
+//
+// 	*new {|wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addAndSend;
+// 	}
+//
+// 	// doesn't send to page, just inits the object
+// 	// TODO: change so wsGUI isn't necessary at this stage
+// 	*init { |wsGUI, bounds|
+// 		^super.newCopyArgs(wsGUI, bounds).addDontSend;
+// 	}
+//
+// 	addAndSend {
+// 		bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)};
+// 		id = ws.addWidget(nil, \checkbox, {}, IdentityDictionary.new.put(\bounds, bounds), sendNow: true);
+// 		function = {};
+// 		prFunction = {
+// 			function.value(this);
+// 		};
+// 		ws.guiObjects[id][1] = prFunction;
+// 	}
+//
+// 	addDontSend {
+// 		// note: instance var for bounds not set for layout to auto-layout
+// 		id = ws.addWidget( nil, \checkbox, {},
+// 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
+// 			sendNow: false
+// 		);
+// 		function = {};
+// 		prFunction = {
+// 			function.value(this);
+// 		};
+// 		ws.guiObjects[id][1] = prFunction
+// 	}
+//
+// 	// useful only if the widget is instantiated but hasn't been sent to the page yet
+// 	bounds_ { |boundsRect|
+// 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
+// 		ws.guiObjects[id][0][\bounds] = bounds;
+// 	}
+//
+// 	addToPage { ws.prAddObjToAll(id) }
+//
+// 	// end mtm edit
+//
+// 	action_ {|func|
+// 		// ^ws.guiObjects[id][1] = function;
+// 		^function = func;
+// 	}
+//
+// 	action {
+// 		// ^ws.guiObjects[id][1];
+// 		^function;
+// 	}
+//
+// 	backgroundColor_ {|color|
+// 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+// 			ws.guiObjects[id][0].put(\backgroundColor, color);
+// 			}, {
+// 				ws.guiObjects[id][0][\backgroundColor] = color;
+// 		});
+// 		ws.updateWidget(id);
+// 	}
+//
+// 	backgroundColor {
+// 		^ws.guiObjects[id][0][\backgroundColor];
+// 	}
+//
+// 	css_ {|cssString|
+// 		if(ws.guiObjects[id][0][\css].isNil, {
+// 			ws.guiObjects[id][0].put(\css, cssString);
+// 			}, {
+// 				ws.guiObjects[id][0][\css] = cssString;
+// 		});
+// 		ws.updateWidget(id, \css);
+// 	}
+//
+// 	css {
+// 		^ws.guiObjects[id][0][\css];
+// 	}
+//
+// 	controlSpec_ {|spec| //how to update dictionary with min and max on change?
+// 		^ws.guiObjects[id][2] = spec;
+// 	}
+//
+// 	controlSpec {
+// 		^ws.guiObjects[id][2];
+// 	}
+//
+// 	value_ {|val|
+// 		if(ws.guiObjects[id][0][\checked].isNil, {
+// 			ws.guiObjects[id][0].put(\checked, val);
+// 			}, {
+// 				ws.guiObjects[id][0][\checked] = val;
+// 		});
+// 		ws.guiObjects[id][0][\value] = val; //hack... since html object responds to \checked, but we store value in \value
+// 		ws.updateWidget(id, \checked);
+// 		^val;
+// 	}
+//
+// 	value {
+// 		^ws.guiObjects[id][0][\value];
+// 	}
+//
+// 	valueAction_ {|val|
+// 		this.value_(val);
+// 		function.value(this);
+// 		^val;
+// 	}
+//
+// 	remove {
+// 		ws.removeWidget(id);
+// 	}
+// }
+
+
+
+
+// marcin scratch
 
 // WsEZCheckbox { //this should be implemented using its own div; possibly checkbox better as well
 // 	var ws, <bounds, <checkboxWidth, label;

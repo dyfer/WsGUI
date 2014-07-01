@@ -66,8 +66,27 @@ i.item
 i.item_("two") // not implemented
 i.states[i.value][0]
 i.font_(Font.new(\Georgia).size_(24))
-i.action_({|val| "got state: ".post; val.value.postln; "item: ".post; val.item.postln;}) //passed button object now
+i.action_({|but| "got state: ".post; but.value.postln; "item: ".post; but.item.postln;}) //passed button object now
 i.remove
+//button - multistate
+i = WsButton.init(a, Rect(0, 0, 0.2, 0.2)); //WsButton imitates SC style multistate button
+i.states_([
+	["zero", Color.black, Color.rand],
+	["one", Color.black, Color.rand],
+	["two", Color.black, Color.rand]
+]);
+// now send
+i.addToPage
+
+i.value_(0)
+i.value_(1)
+i.item
+i.item_("two") // not implemented
+i.states[i.value][0]
+i.font_(Font.new(\Georgia).size_(24))
+i.action_({|but| "got state: ".post; but.value.postln; "item: ".post; but.item.postln;}) //passed button object now
+i.remove
+
 
 //text, labels
 c = WsStaticText.new(a, Rect(0.5, 0.5, 0.2, 0.2));
@@ -79,17 +98,23 @@ c.textColor_(Color.red);
 c.textAlign_(\justify)
 c.remove
 
+c = WsStaticText.init(a)
+c.addToPage
+
 //slider
 //not that great on a touchscreen... will need a different graphical representation eventually
 e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
 //EZSlider with control spec;
 e.controlSpec_(\freq.asSpec) //only in EZSlider;
-e.value_(10000)
+e.value_(1000)
 e.value
 e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
 e.valueAction_(2000);
 e.value
 e.remove
+
+e = WsEZSlider.init(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
+e.addToPage
 
 //without controlSpec
 k = WsSlider.new(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
@@ -101,6 +126,9 @@ k.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object i
 // NOTE: add .valueAction_(newVal) method
 k.remove
 
+k = WsSlider.init(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
+k.addToPage
+
 //image
 //image can be placed anywhere; internally a symlink is created for each image
 d = WsImage.new(a, Rect(0.2, 0.2, 0.8, 0), "~/Desktop/soundWalkMarcin_fromJake sm.jpg".standardizePath); //0 for width or height will default to default image's w-h ratio
@@ -110,13 +138,21 @@ d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //wh
 d.action_({|val| "image is clickable!".postln});
 d.remove
 
+d = WsImage.init(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
+d.path_("localFile");
+d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
+d.action_({|val| "image is clickable!".postln});
+d.addToPage
+d.remove
+
+
+
 //popup menu
 f = WsPopUpMenu.new(a, Rect(0.5, 0.5, 0.4, 0.4));
 f.items_(['-','first', 'second','A third test'])
 f.font_(Font.new(\Georgia).size_(72))
 f.backgroundColor_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
 f.textColor_(Color.red);
-f.textAlign_(\right)  //remove that, not working
 f.action_({|mn| "menu val: ".post; mn.value.postln; "item: ".post; mn.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
 f.value_(1) //index
 f.item //text
@@ -124,6 +160,21 @@ f.item_("second") //NOTE: not implemented
 // f.item_("second") //end up not implementing since would require iteration
 f.valueAction_(0);
 f.value
+f.remove
+
+f = WsPopUpMenu.init(a, Rect(0.5, 0.5, 0.4, 0.4));
+f.items_(['-','first', 'second','A third test'])
+f.font_(Font.new(\Georgia).size_(72))
+f.backgroundColor_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
+f.textColor_(Color.red);
+f.action_({|mn| "menu val: ".post; mn.value.postln; "item: ".post; mn.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
+f.addToPage
+f.value_(1) //index
+f.item //text
+// f.item_("second") //end up not implementing since would require iteration
+f.valueAction_(0);
+f.value
+
 f.remove
 
 //checkbox... not sure if useful when not resizable
@@ -135,14 +186,23 @@ g.value
 g.action_({|cb| "check: ".post; cb.value.postln;}) //wsCheckbox passed; val 0/1
 g.remove
 
+g = WsCheckbox.init(a, Rect(0.0, 0, 0.2, 0.2)); //checkbox; not resizable due to browser restrictions. Eventually this might change but requires more work with CSS
+g.value_(1)
+g.addToPage
+g.value
+g.value_(0)
+g.valueAction_(1)
+g.action_({|cb| "checker: ".post; cb.value.postln;}) //wsCheckbox passed; val 0/1
+g.remove
 
+a.free
 
 
 // LAYOUTS
 
 WsGUI.killPython // if needed
 a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
-
+a.free
  // create 3 buttons
 [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
 ( // TODO init doesn't need parent or x/y, just width height
@@ -185,6 +245,7 @@ a.layout_( WsVLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
 
 [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
 
+a.clear
 
 ~buts = 24.collect{|i| WsSimpleButton.init(a, nil).string_(i.asString);}
 (
@@ -206,30 +267,27 @@ a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
 ~buts.do(_.remove)
 ~buts = 512.collect{|i| WsSimpleButton.init(a, nil).string_(i.asString);}
 (
-a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
-	*~buts.clump(16).collect{|butgrp| WsVLayout(nil, *butgrp ) }
+a.layout_( WsVLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+	*~buts.clump(16).collect{|butgrp| WsHLayout(nil, *butgrp ) }
 	)
 )
 )
 
 ~buts.do(_.remove)
-
-
-
-
-x.elements
-x.bounds
-
-
+~buts = 96.collect{|i| WsSimpleButton.init(a, nil).string_(i.asString);}
 (
-a.layout_( WsHLayout(Rect(0.05,0.7,0.45, 0.3),
-	~b1,
-	nil,
-	WsHLayout(nil, ~b5, ~b4),
-	~b2, 0.1, ~b3
+a.layout_( WsHLayout( Rect(0.025,0.55,0.95, 1/3),
+	*~buts.clump(16).collect{|butgrp,i|
+		i.even.if(
+			{ WsVLayout(Rect(0,0,0.05, 1), *butgrp ) },
+			{ WsHLayout(Rect(0,0,0.5, 1), *butgrp ) }
+		)
+	}
 	)
 )
 )
+
+
 
 
 
