@@ -654,10 +654,12 @@ WsGUI {
 		nItems = elements.size;
 		postf( "number of items: %, %\n", nItems, elements);
 		dimsNorm = elements.collect{|elem|
+			elem.postln;
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
-				{ elem.bounds.notNil.if(
-					{ 	"returning a dimension of bound ".post; elem.bounds.width.postln;
-						(loKind == \vert).if({elem.bounds.height},{elem.bounds.width}) },
+				{ elem.bounds.postln;
+					elem.bounds.notNil.if(
+					{ 	"returning a dimension of bound ".post;
+						(loKind == \vert).if({elem.bounds.height},{elem.bounds.width}).postln },
 					{ 	"returning unspecified dimension".postln;
 						'unspecified' }
 					);
@@ -880,9 +882,9 @@ WsWidget {
 	var <id;
 
 	// TODO: change so wsGUI isn't necessary at this stage
-	add {|wsGUI, bounds, kind, sendNow = true|
+	add {|wsGUI, argbounds, kind, sendNow = true|
 		ws = wsGUI;
-		sendNow.if{ bounds ?? {bounds = Rect(0, 0, 0.1, 0.1)} };
+		argbounds !? {bounds = argbounds};
 		id = ws.addWidget(nil, kind, {},
 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
 			sendNow: sendNow
@@ -971,7 +973,7 @@ WsWidget {
 	}
 
 	controlSpec_ {|spec| //how to update dictionary with min and max on change?
-		^ws.guiObjects[id][2] = spec;
+		ws.guiObjects[id][2] = spec;
 	}
 
 	controlSpec {
