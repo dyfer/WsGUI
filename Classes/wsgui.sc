@@ -654,10 +654,8 @@ WsGUI {
 		nItems = elements.size;
 		postf( "number of items: %, %\n", nItems, elements);
 		dimsNorm = elements.collect{|elem|
-			elem.postln;
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
-				{ elem.bounds.postln;
-					elem.bounds.notNil.if(
+				{ elem.bounds.notNil.if(
 					{ 	"returning a dimension of bound ".post;
 						(loKind == \vert).if({elem.bounds.height},{elem.bounds.width}).postln },
 					{ 	"returning unspecified dimension".postln;
