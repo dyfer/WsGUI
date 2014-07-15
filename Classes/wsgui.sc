@@ -980,6 +980,7 @@ WsWidget {
 
 	string_ {|thisString|
 		thisString = thisString.replace("\n", "<br>");//convert newline for html
+		thisString = thisString.replace("\t", "&nbsp;&nbsp;&nbsp;");//convert newline for html
  		if(ws.guiObjects[id][0][\innerHTML].isNil, {
 			ws.guiObjects[id][0].put(\innerHTML, thisString);
 		}, {
