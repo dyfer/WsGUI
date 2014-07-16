@@ -96,12 +96,8 @@ WsGUI {
 
 		pythonPath ?? {pythonPath = "python"};
 		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
-		// classPath.postln;
 		bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
 		checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
-		// "bridgePath: ".post; bridgePath.postln;
-		// workingDir = bridgePath.dirname;
-		// "workingDir: ".post; workingDir.postln;
 
 		//init vars
 		guiObjects = IdentityDictionary.new(know: true);
@@ -127,8 +123,6 @@ WsGUI {
 	getPorts {
 		wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger;
 		wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
-		// "wsOSC: ".post;
-		// wsOscPort.postln;
 	}
 
 	checkStaticPort {
@@ -280,8 +274,6 @@ WsGUI {
 	}
 
 	prUpdateValue {|objID, value, hostport|
-		// "incoming value: ".post;
-		// value.postln;
 		if(numericOutputKinds.includes(guiObjects[objID][0][\kind]), {
 			// value = guiObjects[objID][2].map(value.asFloat); //convert to float and map controlspec here and
 			value = value.asFloat;
@@ -364,8 +356,6 @@ WsGUI {
 		});
 		newDict.put(\command, command);
 		newDict.put(\id, id);
-		// "newDict: ".post;
-		// newDict.postln;
 		if(command == \remove, {
 			str = this.prepareJSON(newDict); //don't go through css for removing
 		}, {
@@ -376,21 +366,16 @@ WsGUI {
 
 	prepareJSON {|dict|
 		var str, keyString, valString;
-		// dict.postln;
 		str = "{";
 		dict.keysValuesDo({|key, value, inc|
 			keyString = "\"" ++ key.asString ++ "\"";
-			// "value: ".post; value.postln;
 			valString = "\"" ++ value.asString ++ "\"";
 			str = str ++ keyString ++ ":" ++ valString;
-			// str.postln;
 			if(inc < (dict.size - 1), { //add comma only up to the second to the last item
 				str = str ++ ", ";
 			});
 		});
 		str = str ++ "}";
-		// "full JSON: ".post;
-		// str.postln;
 		^str;
 	}
 
@@ -656,9 +641,9 @@ WsGUI {
 		dimsNorm = elements.collect{|elem|
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
 				{ elem.bounds.notNil.if(
-					{ 	"returning a dimension of bound ".post;
+					{ 	//"returning a dimension of bound ".post; // debug
 						(loKind == \vert).if({elem.bounds.height},{elem.bounds.width}).postln },
-					{ 	"returning unspecified dimension".postln;
+					{ 	//"returning unspecified dimension".postln; // debug
 						'unspecified' }
 					);
 				},{ elem } // assumed to be either nil or a Number
@@ -670,6 +655,7 @@ WsGUI {
 		// 1/numNonNilItems and rescale other items accordingly in case a
 		// layout with unspecified width is forced to 0 width by nilSize = 0
 		// dimsNorm = dimsNorm.replace(nil, 1/nItems).normalizeSum;
+		//TODO: handle specified dimensions better
 		nonNilDims =	dimsNorm.select({|dim| dim.notNil}); // numbers and 'unspecified's
 		postf("nonNilDims: %\n",nonNilDims);
 		unKnownDimSize =	nonNilDims.size.reciprocal; // size assigned to unspecified dimension
@@ -717,7 +703,7 @@ WsGUI {
 
 		elements.do{ |elem, i|
 			var myBounds, myWidth, myHeight;
-			postf("\niterating through: %, next x/y: %/%\n", elem, nextX, nextY);
+			// postf("\niterating through: %, next x/y: %/%\n", elem, nextX, nextY); //debug
 			(elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget)).if{
 				// a widget or another layout
 				switch( loKind,
@@ -743,11 +729,11 @@ WsGUI {
 
 				case
 				{elem.isKindOf(WsLayout)} {
-					"found a WsLayout to lay out: ".post; elem.postln;
+					// "found a WsLayout to lay out: ".post; elem.postln; // debug
 					this.buildLayout(elem, myBounds);
 				}
 				{ elem.isKindOf(WsWidget) } {
-					postf("placing a WsWidget: % at bounds: %\n", elem, myBounds);
+					// postf("placing a WsWidget: % at bounds: %\n", elem, myBounds); // debug
 					elem.bounds_(myBounds);
 					elem.addToPage;
 				};
@@ -759,117 +745,6 @@ WsGUI {
 			)
 		};
 	}
-
-/*	BAK
-	buildHLayout { |layout, parBoundsRect| //parX, parY, parW, parH
-		var elements, nItems, widthsNorm, widthsAbs, nonNilWidths, unKnownWidthSize;
-		var nextX, nextY, parH, counter=0;
-		var freeSpace, nilSize; // move to if statement where they're used
-
-		elements = layout.elements;
-		nItems = elements.size;
-		postf( "number of items: %, %\n", nItems, elements);
-		widthsNorm = elements.collect{|elem|
-			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
-				{ elem.bounds.notNil.if(
-					{ "returning a width of bound ".post; elem.bounds.width.postln;
-						elem.bounds.width },
-					{ "returning unspecified width".postln;
-						'unspecified'; }
-					);
-				},{ elem } // assumed to be either nil or a Number
-			);
-		};
-		widthsNorm.postln;
-
-		// assign layouts or widgets with nil (unspecified) width to a width of
-		// 1/numNonNilItems and rescale other items accordingly in case a
-		// layout with unspecified width is forced to 0 width by nilSize = 0
-		// widthsNorm = widthsNorm.replace(nil, 1/nItems).normalizeSum;
-		nonNilWidths =	widthsNorm.select({|width| width.notNil});
-		postf("nonNilWidths: %\n",nonNilWidths);
-		unKnownWidthSize =	nonNilWidths.size.reciprocal; // numbers and 'unspecified's
-		postf("unKnownWidthSize: %\n",unKnownWidthSize);
-		nonNilWidths =	nonNilWidths.replace('unspecified', unKnownWidthSize);
-		postf("nonNilWidths: %\n", nonNilWidths);
-		postf("sum: %\n", nonNilWidths.sum);
-		if(nonNilWidths.sum > 1,
-			{ 	// widths are rescaled
-				"rescaling element widths".postln;
-				nonNilWidths = nonNilWidths.normalizeSum; // rescale all down to sum to 1
-				widthsAbs = widthsNorm.collect({ |item, i| var width;
-					item.isNil.if(
-						{ 	width = 0 },
-						{ 	width = nonNilWidths[counter];
-							counter = counter +1; }
-					);
-					width
-				}) * parBoundsRect.width // convert to absolute page widths
-			},{
-				var numNils;
-				freeSpace = 1 - nonNilWidths.sum;
-				numNils = widthsNorm.occurrencesOf(nil);
-				// freeSpace = (1 - widthsNorm.select({|width| width.notNil}).sum).clip(0,1);
-				nilSize = if(( numNils > 0) and: (freeSpace > 0), {freeSpace / numNils},{0});
-				widthsAbs = widthsNorm.collect({ |item, i|
-					var width;
-					item.isNil.if(
-						{	width = nilSize },
-						{	width = nonNilWidths[counter];
-							counter = counter +1; }
-					);
-					width
-				}) * parBoundsRect.width // convert to absolute page widths
-		});
-
-		postf( "horizontal spaces norm:%\nhorizontal spaces abs :%\navailable free space:%\nnilSize: %\n", widthsNorm, widthsAbs, freeSpace, nilSize);
-
-		// place the widgets
-		nextX = parBoundsRect.left;
-		nextY = parBoundsRect.top;
-		parH = parBoundsRect.height;
-
-		elements.do{ |elem, i|
-			var elemKind, myBounds, myWidth;
-			elemKind = elem.class;
-			"\niterating through: ".post; elem.postln;
-			"next X pos: ".post; nextX.postln; "next Y pos: ".post; nextY.postln;
-
-			// if it's a Ws layout or widget, get its height and bounds
-			if( elem.notNil and: elem.isKindOf(Number).not, { var myHeight;
-				myWidth = widthsAbs[i];
-				myHeight = elem.bounds.notNil.if(
-					{ elem.bounds.height * parH },
-					{ parH }
-				);
-				// ignoring original xy for now
-				myBounds = Rect(nextX, nextY, myWidth, myHeight);
-			});
-
-			case
-			{elem.isKindOf(Number)} { nextX = nextX + widthsAbs[i]} // advance x pointer (explicit empty space)
-			{elem.isNil}			{ nextX = nextX + widthsAbs[i]} // advance x pointer (nil empty space)
-			{elemKind == WsHLayout}	{
-				"found a WsHLayout to lay out: ".post; elem.postln;
-				this.buildHLayout(elem, Rect(nextX, nextY, widthsAbs[i], parH));
-				nextX = nextX + myWidth;
-			}
-			{elemKind == WsVLayout} {
-				"found a WsVLayout to lay out: ".post; elem.postln;
-				this.buildVLayout(elem, Rect(nextX, nextY, widthsAbs[i], parH));
-				nextX = nextX + myWidth;
-			}
-			{ elem.isKindOf(WsWidget) } {
-				"found a WsWidget to lay out: ".post; elem.postln;
-				"setting widget bounds to: ".post; myBounds.postln;
-				elem.bounds_(myBounds);
-				elem.addToPage;
-				nextX = nextX + myWidth;
-			};
-		};
-	}
-	*/
-
 }
 
 // TODO: figure out how to separate out methods for irrelevant sub-classes
