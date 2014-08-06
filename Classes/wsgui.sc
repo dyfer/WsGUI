@@ -626,7 +626,7 @@ WsGUI {
 	}
 
 	buildLayout { |layout, parBoundsRect| //parX, parY, parW, parH
-		var loKind, elements, nItems, dimsNorm, dimsAbs, nonNilDims, unKnownDimSize;
+		var loKind, elements, nItems, dimsNorm, dimsAbs, unspecDims, nonNilDims, unKnownDimSize;
 		var nextX, nextY, counter=0;
 		var freeSpace=0, nilSize=0; // move to if statement where they're used
 
@@ -638,6 +638,7 @@ WsGUI {
 		elements = layout.elements;
 		nItems = elements.size;
 		postf( "number of items: %, %\n", nItems, elements);
+		// element dimensions normalized 0>1 (1 being the full amount of the parent's bounds)
 		dimsNorm = elements.collect{|elem|
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
 				{ elem.bounds.notNil.if(
@@ -656,15 +657,22 @@ WsGUI {
 		// layout with unspecified width is forced to 0 width by nilSize = 0
 		// dimsNorm = dimsNorm.replace(nil, 1/nItems).normalizeSum;
 		//TODO: handle specified dimensions better
+
+		// unspecDims =	dimsNorm.select({|dim| dim == 'unspecified'}); // numbers and 'unspecified's
+
 		nonNilDims =	dimsNorm.select({|dim| dim.notNil}); // numbers and 'unspecified's
 		postf("nonNilDims: %\n",nonNilDims);
+
 		unKnownDimSize =	nonNilDims.size.reciprocal; // size assigned to unspecified dimension
+		// unKnownDimSize =	unspecDims.size.reciprocal; // size assigned to unspecified dimension
 		postf("unKnownDimSize: %\n",unKnownDimSize);
+
 		nonNilDims =	nonNilDims.replace('unspecified', unKnownDimSize);
 		postf("nonNilDims: %\n", nonNilDims);
 		postf("sum: %\n", nonNilDims.sum);
+
 		if(nonNilDims.sum > 1,
-			{ 	// widths are rescaled
+			{ 	// dimensions are rescaled
 				"rescaling element dimension".postln;
 				nonNilDims = nonNilDims.normalizeSum; // rescale all down to sum to 1
 				dimsAbs = dimsNorm.collect({ |item, i| var dim;
@@ -682,13 +690,13 @@ WsGUI {
 				// freeSpace = (1 - dimsNorm.select({|width| width.notNil}).sum).clip(0,1);
 				nilSize = if(( numNils > 0) and: (freeSpace > 0), {freeSpace / numNils},{0});
 				dimsAbs = dimsNorm.collect({ |item, i|
-					var width;
+					var dim;
 					item.isNil.if(
-						{	width = nilSize },
-						{	width = nonNilDims[counter];
+						{	dim = nilSize },
+						{	dim = nonNilDims[counter];
 							counter = counter +1; }
 					);
-					width
+					dim
 				});
 		});
 
@@ -719,7 +727,8 @@ WsGUI {
 					\horiz,	{
 						myWidth = dimsAbs[i];
 						myHeight = elem.bounds.notNil.if(
-							{ elem.bounds.height * parBoundsRect.height },{ parBoundsRect.height }
+							{ elem.bounds.height * parBoundsRect.height },
+							{ parBoundsRect.height }
 						);
 					}
 				);
