@@ -203,6 +203,25 @@ a.free
 WsGUI.killPython // if needed
 a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
+
+//init only, send to page later
+b = WsSimpleButton.init(a, nil); // no bounds specified
+b.string_("string")
+b.font_(Font.new(\Georgia).size_(24))
+b.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
+b.bounds
+b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
+b.bounds
+// now send
+b.addToPage
+b.backgroundColor_(Color.green);
+b.textColor_(Color.red);
+b.action_({"bu1".postln}) //just a function
+b.remove
+
+a.free; [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
+
+
  // create 3 buttons
 [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
 ( // TODO init doesn't need parent or x/y, just width height
@@ -249,7 +268,7 @@ a.clear
 
 ~buts = 24.collect{|i| WsSimpleButton.init(a, nil).string_(i.asString);}
 (
-a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
+a.layout_( WsHLayout(Rect(0.15,0.05,0.45, 0.7),
 	*~buts.clump(6).collect{|butgrp| WsVLayout(nil, *butgrp ) }
 	)
 )
@@ -290,23 +309,6 @@ a.layout_( WsHLayout( Rect(0.025,0.55,0.95, 1/3),
 
 
 
-
-//init only, send to page later
-b = WsSimpleButton.init(a, nil); // no bounds specified
-b.string_("string")
-b.font_(Font.new(\Georgia).size_(24))
-b.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
-b.bounds
-b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
-b.bounds
-// now send
-b.addToPage
-b.backgroundColor_(Color.green);
-b.textColor_(Color.red);
-b.action_({"bu1".postln}) //just a function
-b.remove
-
-a.free; [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
 
 
 
