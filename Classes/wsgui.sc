@@ -60,9 +60,9 @@ WsWindow {
 		postf("Starting www server, root path: %\n", rootPath);
 		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
 		cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
-		"wwwPid: ".post; wwwPid.postln;
-		"class: ".post; wwwPid.class.postln;
-		"wwwPort: ".post; wwwPort.postln;
+		// "wwwPid: ".post; wwwPid.postln;
+		// "class: ".post; wwwPid.class.postln;
+		// "wwwPort: ".post; wwwPort.postln;
 		if(wwwPid.isNil, {
 			if(this.checkWwwPort, {
 				wwwPid = cmd.unixCmd({
@@ -244,22 +244,24 @@ WsWindow {
 
 	setAsDefault {
 		var copyCmd;
+		"Setting as default, copying/writing files".postln;
 		//set the variable
 		this.setDefaultRedirectionAddress;
 		//copy index
 		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ globalWwwPath).escapeChar($ );
-		"copying index.html, command: ".post; copyCmd.postln;
+		// "copying index.html, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
 	}
 	
 	unsetAsDefalt{
 		var rm1cmd, rm2cmd;
 		//remove both files
+		"Removing files for redirection".postln;
 		rm1cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ );
-		"rm1cmd: ".post; rm1cmd.postln;
+		// "rm1cmd: ".post; rm1cmd.postln;
 		rm1cmd.systemCmd;
 		rm2cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile).escapeChar($ );
-		"rm2cmd: ".post; rm2cmd.postln;
+		// "rm2cmd: ".post; rm2cmd.postln;
 		rm2cmd.systemCmd;
 	}
 
@@ -292,7 +294,9 @@ WsWindow {
 			wsPid = nil;
 			// this.killWWW;
 			//stop www server only if it was started with this window instance:
+			"wwwServerStartedFromWsWindow: ".post; wwwServerStartedFromWsWindow.postln;
 			if(wwwServerStartedFromWsWindow, {
+				// for future - check if there are no other WsWindows using the server...
 				WsWindow.stopWwwServer;
 			});
 			this.prCleanup;
@@ -332,14 +336,15 @@ WsWindow {
 
 	addSubdirectory {
 		var cmd, copyCmd;
+		"Creating subdirectory and copying files".postln;
 		//mkdir
 		cmd = "mkdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
-		"Creading subdirectory, command: ".post; cmd.postln;
+		// "Creading subdirectory, command: ".post; cmd.postln;
 		cmd.systemCmd;
 		
 		//copy files
 		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
-		"Creading subdirectory, command: ".post; copyCmd.postln;
+		// "Creading subdirectory, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
 	}
 
@@ -347,15 +352,16 @@ WsWindow {
 		var rmFilesCmd, rmDirCmd;
 		//remove all files - or just known files?
 		//all for now
+		"Removing files and subdirectory".postln;
 				
 		//rmFilesCmd
 		rmFilesCmd = "rm " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*").escapeChar($ );
-		"Removing files from current directory, command: ".post; rmFilesCmd.postln;
+		// "Removing files from current directory, command: ".post; rmFilesCmd.postln;
 		rmFilesCmd.systemCmd;
 		
 		//rmDirCmd
 		rmDirCmd = "rmdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
-		"Removing subdirectory, command: ".post; rmDirCmd.postln;
+		// "Removing subdirectory, command: ".post; rmDirCmd.postln;
 		rmDirCmd.systemCmd;
 		
 		//remove directory

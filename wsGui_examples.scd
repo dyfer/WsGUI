@@ -9,15 +9,9 @@
 
 //WebSocket interface requires 2 "servers": one to serve static content (initial website, possibly images if used), another one to manage realtime communication (websockets). The former can be substituted for a built-in or another web server. It needs to be configured to serve the "www" folder inside this class' folder. Decoder machines will use their internal apache server, configured to point to that direction
 
-WsWindow.startWwwServer(8000);
-WsWindow.stopWwwServer
-
 a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
-
-o = WsWindow.new("different title", false, 8000); //second win!
-o.free
 
 //finishing
 a.clear //remove all elements, don't close server (can add new elements)
@@ -32,7 +26,6 @@ NetAddr.myIP; //useful for connecting external clients
 //background and a title
 a.backgroundColor_(Color.blue)
 a.backgroundColor_(Color.green)
-o.backgroundColor_(Color.green) //second win
 a.title_("new title")
 
 //button - simple
@@ -314,6 +307,60 @@ b.action_({"bu1".postln}) //just a function
 b.remove
 
 a.free; [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
+
+
+// MULTIPLE WINDOWS
+
+WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWindow; for multiple windows manual creation/freeing is advisable to avoid problems
+WsWindow.stopWwwServer
+WsWindow.wwwPid;
+
+a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to 
+a.free
+//now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+
+o = WsWindow.new("different title", false); //second win!
+o.free
+
+
+a.isDefault_(false);//unset default
+
+
+a.backgroundColor_(Color.blue);
+o.backgroundColor_(Color.green); //second win
+
+//init only, send to page later
+b = WsSimpleButton.init(a, nil); // no bounds specified
+b.string_("string")
+b.font_(Font.new(\Georgia).size_(24))
+b.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
+b.bounds
+b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
+b.bounds
+// now send
+b.addToPage
+b.backgroundColor_(Color.green);
+b.textColor_(Color.red);
+b.action_({"bu1".postln}) //just a function
+b.remove
+
+
+//init only, send to page later
+c = WsSimpleButton.init(o, nil); // no bounds specified
+c.string_("string on another win")
+c.font_(Font.new(\Georgia).size_(24))
+c.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
+c.bounds
+c.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
+c.bounds
+// now send
+c.addToPage
+c.backgroundColor_(Color.green);
+c.textColor_(Color.red);
+c.action_({"bu2".postln}) //just a function
+c.remove
+
+
 
 
 
