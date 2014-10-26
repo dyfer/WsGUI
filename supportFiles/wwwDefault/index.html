@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Redirect automatically to the desired WsWindow</title>
+
+<script src="whereto.js"></script> <!-- variable name: destination -->
+<script>
+window.location.replace(window.location.href.slice(0, -1) + "/" + destination);
+</script>
+
+<meta name="keywords" content="automatic redirection">
+
+</head>
+
+<body>
+You shouldn't be seeing that, redirecting...
+</body>
+</html>
+

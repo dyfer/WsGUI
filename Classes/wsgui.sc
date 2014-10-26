@@ -1,10 +1,10 @@
-//correct wwwPath vs globalWwwPath
-//add to init: thisWwwPath, windowID
-//add subpaths to updateWsPortInFile and setDisconnectMessage...
+//correct wwwPath vs globalWwwPath //done
+//add to init: thisWwwPath, windowID //done
+//add subpaths to updateWsPortInFile and setDisconnectMessage... //done
 //add default redirection
 
 WsWindow {
-	var <title, <setAsDefault, <>actionOnClose, suppressPosting;
+	var <title, <isDefault, <>actionOnClose, suppressPosting;
 	var <wsPid, <oscPath;//, <wwwPipe;
 	var <wsPort, <wsOscPort; //chosen automatically
 	var <wwwPath;
@@ -30,7 +30,10 @@ WsWindow {
 	classvar <>discMsgFile = "discMessage.js";
 	classvar <wwwPid, <wwwPort;
 	classvar <allWsWindows = IdentityDictionary.new;
-	classvar <sourceWwwPath = "wwwSource";
+	classvar <sourceWwwPath = "supportFiles/wwwSource";
+	classvar <defaultWwwPath = "supportFiles/wwwDefault";
+	classvar <redirectionAddrFile = "whereto.js";
+	classvar <redirectionHtmlFile = "index.html";
 	// classvar <sourceFiles = 
 
 	// *new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
@@ -38,8 +41,8 @@ WsWindow {
 	// 	^super.newCopyArgs(wwwPort, // wsPort, wsOscPort,
 	// 		oscPath, actionOnClose, suppressPosting).init;
 	// }
-	*new {|title, wwwPort, actionOnClose, suppressPosting = false|
-		^super.newCopyArgs(title, setAsDefault, actionOnClose, suppressPosting).init(wwwPort);
+	*new {|title, isDefault = true, wwwPort, actionOnClose, suppressPosting = false|
+		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting).init(wwwPort);
 	}
 
 	*startWwwServer {arg port = 8000, suppressPosting = false;
@@ -87,37 +90,6 @@ WsWindow {
 
 	*killPython { //use this ONLY if you lost python process PID - like overwriting a variable or recompiling library
 		"killall python".unixCmd
-	}
-
-	updateWsPortInFile {arg port = 8000;
-		var path = wwwPath; //www path
-		var filename = jsFilename;
-		var fileContentsArray, filePath;
-		if(path[0] == "~", {//it's relative to home directory
-			path = path.standardizePath;
-		}, {
-			if(path[0] != "/", {//it's relative to the class file
-				path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
-			});
-		});
-		filePath = path.withTrailingSlash ++ filename;
-		"Writing ws port number to the file at ".post; filePath.postln;
-		// File.use(path, "r", {|file|
-		// 	fileContentsArray = file.readAllString.split($\n).collect({|thisLine, lineNumber|
-		// 		thisLine.postln;
-		// 		if(thisLine.replace(" ", "").replace("	", "").beginsWith("varwsPort"), {
-		// 			// "This is the line!".postln;
-		// 			thisLine = thisLine.split($=)[0] ++ " = " ++ port ++ ";";
-		// 		});
-		// 		thisLine;
-		// 	});
-		// });
-		File.use(filePath, "w", {|file|
-			// fileContentsArray.do({|thisLine, lineNumber|
-			file.write("var wsPort = " ++ port.asString ++ ";")
-			// });
-		});
-		"Writing done.".postln;
 	}
 
 	//this needs to be run before starting WsWindow
@@ -188,6 +160,11 @@ WsWindow {
 
 			//path
 			wwwPath = globalWwwPath ++ "/" ++ windowID.asString;
+			this.addSubdirectory;
+			if(isDefault, {
+				this.isDefault_(isDefault)
+			});
+			// this.setDefaultRedirectionAddress; //now figure out the address
 
 			this.getPorts; //get next free port for websockets and udp communication
 			this.updateWsPortInFile(wsPort);
@@ -197,6 +174,92 @@ WsWindow {
 			this.startBridge; //to give time
 		});
 	}
+
+	updateWsPortInFile {arg port = 8000;
+		var path = wwwPath; //www path
+		var filename = jsFilename;
+		var fileContentsArray, filePath;
+		if(path[0] == "~", {//it's relative to home directory
+			path = path.standardizePath;
+		}, {
+			if(path[0] != "/", {//it's relative to the class file
+				path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
+			});
+		});
+		filePath = path.withTrailingSlash ++ filename;
+		"Writing ws port number to the file at ".post; filePath.postln;
+		// File.use(path, "r", {|file|
+		// 	fileContentsArray = file.readAllString.split($\n).collect({|thisLine, lineNumber|
+		// 		thisLine.postln;
+		// 		if(thisLine.replace(" ", "").replace("	", "").beginsWith("varwsPort"), {
+		// 			// "This is the line!".postln;
+		// 			thisLine = thisLine.split($=)[0] ++ " = " ++ port ++ ";";
+		// 		});
+		// 		thisLine;
+		// 	});
+		// });
+		File.use(filePath, "w", {|file|
+			// fileContentsArray.do({|thisLine, lineNumber|
+			file.write("var wsPort = " ++ port.asString ++ ";")
+			// });
+		});
+		"Writing done.".postln;
+	}
+
+	//this needs to be run before starting WsWindow
+	setDefaultRedirectionAddress {//address relative to globalWwwPath
+		var address = wwwPath.asRelativePath(globalWwwPath); //this should just give us relative path
+		var fileContentsArray, filePath;
+		if(path[0] == "~", {//it's relative to home directory
+			path = path.standardizePath;
+		}, {
+			if(path[0] != "/", {//it's relative to the class file
+				path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
+			});
+		});
+		filePath = path.withTrailingSlash ++ filename;
+		"Writing destination address to the file at ".post; filePath.postln;
+		File.use(filePath, "w", {|file|
+			file.write("var destination = \"" ++ address.asString ++ "\";")
+		});
+		"Writing done.".postln;
+	}
+
+	setAsDefault {
+		var copyCmd;
+		//set the variable
+		this.setDefaultRedirectionAddress;
+		//copy index
+		copyCmd = "cp " ++ classPath.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile ++ " " ++ classPath.withTrailingSlash ++ globalWwwPath;
+		"copying index.html, command: ".post; copyCmd.postln;
+		copyCmd.systemCmd;
+	}
+	
+	unsetAsDefalt{
+		var rm1cmd, rm2cmd;
+		//remove both files
+		rm1cmd = "rm " ++  classPath.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile;
+		"rm1cmd: ".post; rm1cmd.postln;
+		rm1cmd.systemCmd;
+		rm2cmd = "rm " ++  classPath.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionAddrFile;
+		"rm2cmd: ".post; rm2cmd.postln;
+		rm2cmd.systemCmd;
+		
+	}
+
+	isDefault_ {|val = false|
+		if(val, {
+			"removing other defaults".postln;
+			allWsWindows.do({|thisWindow|
+				if(thisWindow.windowID != windowID, {
+					thisWindow.isDefault = false;
+				});
+			});		
+			this.setAsDefault;
+		}, {
+			this.unsetAsDefalt;
+		});
+	}	
 
 	getPorts {
 		wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger;
@@ -433,6 +496,9 @@ WsWindow {
 		socketsResponder.free;
 		// this.removeAllImageLinks; //clean images - not needed when removing whole directory
 		this.removeSubdirectory;
+		if(isDefault, {
+			this.isDefault_(false);
+		});
 		allWsWindows.removeAt(windowID);
 		// disconReponder.free;
 		// this.clear;
