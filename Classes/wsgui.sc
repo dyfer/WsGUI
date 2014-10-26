@@ -4,7 +4,7 @@
 //add default redirection
 
 WsWindow {
-	var <title, <isDefault, <>actionOnClose, suppressPosting;
+	var title, <isDefault, <>actionOnClose, suppressPosting;
 	var <wsPid, <oscPath;//, <wwwPipe;
 	var <wsPort, <wsOscPort; //chosen automatically
 	var <wwwPath;
@@ -21,7 +21,7 @@ WsWindow {
 	var styleKeys, numericOutputKinds;
 	var <wwwServerStartedFromWsWindow = false;
 
-	classvar <>pythonPath, <>bridgePath, <>checkPortPath, <classPath; //set in init...
+	classvar <>pythonPath, <>bridgePath, <>checkPortPath, <classPath, <classDir; //set in init...
 	// classvar <>jsFilePath = "www/ws.js";
 	classvar oscRootPath = "/sockets";
 	classvar currentWindowID; 
@@ -29,7 +29,7 @@ WsWindow {
 	classvar <>jsFilename = "wsport.js"; //relative to class
 	classvar <>discMsgFile = "discMessage.js";
 	classvar <wwwPid, <wwwPort;
-	classvar <allWsWindows = IdentityDictionary.new;
+	classvar <allWsWindows;// = IdentityDictionary.new;
 	classvar <sourceWwwPath = "supportFiles/wwwSource";
 	classvar <defaultWwwPath = "supportFiles/wwwDefault";
 	classvar <redirectionAddrFile = "whereto.js";
@@ -48,6 +48,7 @@ WsWindow {
 	*startWwwServer {arg port = 8000, suppressPosting = false;
 		var rootPath = globalWwwPath;
 		var cmd;
+		wwwPort = port; //set classvar
 		if(rootPath[0] == "~", {//it's relative to home directory
 			rootPath = rootPath.standardizePath;
 		}, {
@@ -56,21 +57,25 @@ WsWindow {
 			});
 		});
 		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
-		postf("Starting www www server, root path: %\n", rootPath);
+		postf("Starting www server, root path: %\n", rootPath);
 		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
 		cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
-		if(wwwPid.notNil.{
+		"wwwPid: ".post; wwwPid.postln;
+		"class: ".post; wwwPid.class.postln;
+		"wwwPort: ".post; wwwPort.postln;
+		if(wwwPid.isNil, {
 			if(this.checkWwwPort, {
 				wwwPid = cmd.unixCmd({
-					"Python www (www) server stopped!".postln;
+					"Python www server stopped!".postln;
 					wwwPid = nil;
-					this.killWS;
+					// this.killWS;
 				}, postOutput: suppressPosting.not);
 			}, {
 				Error("WsWindow www server: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
 			});
 		}, {
-			("WWW server at port " ++ wwwPort ++ " seems already running, new server NOT started, continuing...").warn; 
+			("WWW server at port " ++ wwwPort.asString ++ " seems already running, new server NOT started, continuing...").warn;
+			wwwPort = nil; // clear classvar
 		});
 	}
 
@@ -84,6 +89,7 @@ WsWindow {
 	}
 
 	*checkWwwPort {
+		this.setClassVars;
 		^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
 	}
 
@@ -125,7 +131,16 @@ WsWindow {
 		"Writing done.".postln;
 	}
 
+	*setClassVars {
+			pythonPath ?? {pythonPath = "python"};
+			classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
+			classDir ?? {classDir = classPath.dirname};
+			bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
+			checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
+	}
+
 	init {|wwwPortArg|
+		allWsWindows ?? {allWsWindows = IdentityDictionary.new}; //create dictionary with all members if not already done
 		//first check if the name is valid
 		title ?? {title = "default"};
 		windowID = title.replace(" ", "").asSymbol;
@@ -135,10 +150,12 @@ WsWindow {
 			allWsWindows[windowID] = this;
 			
 			actionOnClose ?? {actionOnClose = {}};
-			pythonPath ?? {pythonPath = "python"};
-			classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
-			bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
-			checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
+			WsWindow.setClassVars;
+			// pythonPath ?? {pythonPath = "python"};
+			// classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
+			// classDir ?? {classDir = classPath.dirname};
+			// bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
+			// checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
 
 			//init vars
 			guiObjects = IdentityDictionary.new(know: true);
@@ -172,6 +189,7 @@ WsWindow {
 			oscPath = oscRootPath ++ "/" ++ wsPort.asString;
 			"oscPath: ".post; oscPath.postln;
 			this.startBridge; //to give time
+			{this.title_(title)}.defer(1); //awful hack for now to solve possible timing problems
 		});
 	}
 
@@ -206,18 +224,17 @@ WsWindow {
 		"Writing done.".postln;
 	}
 
-	//this needs to be run before starting WsWindow
 	setDefaultRedirectionAddress {//address relative to globalWwwPath
 		var address = wwwPath.asRelativePath(globalWwwPath); //this should just give us relative path
-		var fileContentsArray, filePath;
-		if(path[0] == "~", {//it's relative to home directory
-			path = path.standardizePath;
-		}, {
-			if(path[0] != "/", {//it's relative to the class file
-				path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
-			});
-		});
-		filePath = path.withTrailingSlash ++ filename;
+		var filePath;
+		// if(path[0] == "~", {//it's relative to home directory
+		// 	path = path.standardizePath;
+		// }, {
+		// 	if(path[0] != "/", {//it's relative to the class file
+		// 		path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
+		// 	});
+		// });
+		filePath = classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile;
 		"Writing destination address to the file at ".post; filePath.postln;
 		File.use(filePath, "w", {|file|
 			file.write("var destination = \"" ++ address.asString ++ "\";")
@@ -230,7 +247,7 @@ WsWindow {
 		//set the variable
 		this.setDefaultRedirectionAddress;
 		//copy index
-		copyCmd = "cp " ++ classPath.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile ++ " " ++ classPath.withTrailingSlash ++ globalWwwPath;
+		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ globalWwwPath).escapeChar($ );
 		"copying index.html, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
 	}
@@ -238,13 +255,12 @@ WsWindow {
 	unsetAsDefalt{
 		var rm1cmd, rm2cmd;
 		//remove both files
-		rm1cmd = "rm " ++  classPath.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile;
+		rm1cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ );
 		"rm1cmd: ".post; rm1cmd.postln;
 		rm1cmd.systemCmd;
-		rm2cmd = "rm " ++  classPath.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionAddrFile;
+		rm2cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile).escapeChar($ );
 		"rm2cmd: ".post; rm2cmd.postln;
 		rm2cmd.systemCmd;
-		
 	}
 
 	isDefault_ {|val = false|
@@ -299,7 +315,7 @@ WsWindow {
 	// 		});
 	// 	});
 	// 	rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
-	// 	postf("Starting www www server, root path: %\n", rootPath);
+	// 	postf("Starting www server, root path: %\n", rootPath);
 	// 	// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
 	// 	cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
 	// 	// if(suppressPosting, {
@@ -317,14 +333,14 @@ WsWindow {
 	addSubdirectory {
 		var cmd, copyCmd;
 		//mkdir
-		cmd = "mkdir " ++ classPath.withTrailingSlash ++ wwwPath;
+		cmd = "mkdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
 		"Creading subdirectory, command: ".post; cmd.postln;
-		// cmd.systemCmd;
+		cmd.systemCmd;
 		
 		//copy files
-		copyCmd = "cp " ++ classPath.withTrailingSlash ++ sourceWwwPath ++ "/*" ++ " " ++ classPath.withTrailingSlash ++ wwwPath;
+		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
 		"Creading subdirectory, command: ".post; copyCmd.postln;
-		// copyCmd.systemCmd;
+		copyCmd.systemCmd;
 	}
 
 	removeSubdirectory {
@@ -333,16 +349,17 @@ WsWindow {
 		//all for now
 				
 		//rmFilesCmd
-		rmFilesCmd = "rm " ++ classPath.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*";
+		rmFilesCmd = "rm " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*").escapeChar($ );
 		"Removing files from current directory, command: ".post; rmFilesCmd.postln;
-		// rmFilesCmd.systemCmd;
+		rmFilesCmd.systemCmd;
 		
 		//rmDirCmd
-		rmDirCmd = "rm " ++ classPath.withTrailingSlash ++ wwwPath;
+		rmDirCmd = "rmdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
 		"Removing subdirectory, command: ".post; rmDirCmd.postln;
-		// rmDirCmd.systemCmd;
+		rmDirCmd.systemCmd;
 		
 		//remove directory
+	}
 
 	prPrepareGlobalResponders {
 		socketsResponder = OSCdef(oscPath, {|msg, time, addr, recvPort|
@@ -671,7 +688,7 @@ WsWindow {
 		var cmd, relativeImgPath;
 		// relativeImgPath = "images/" ++ id.asString; //to not have to deal with removing the directory afterwards...
 		relativeImgPath = id.asString;
-		cmd = "ln -sf " ++ path.escapeChar($ ) + (classPath.dirname.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
+		cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
 		"Creating symlink: ".post;
 		// cmd.postln;
 		cmd.systemCmd; //synchronously, so we have the link on time

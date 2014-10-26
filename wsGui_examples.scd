@@ -9,9 +9,15 @@
 
 //WebSocket interface requires 2 "servers": one to serve static content (initial website, possibly images if used), another one to manage realtime communication (websockets). The former can be substituted for a built-in or another web server. It needs to be configured to serve the "www" folder inside this class' folder. Decoder machines will use their internal apache server, configured to point to that direction
 
-a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
+WsWindow.startWwwServer(8000);
+WsWindow.stopWwwServer
 
+a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
+a.free
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+
+o = WsWindow.new("different title", false, 8000); //second win!
+o.free
 
 //finishing
 a.clear //remove all elements, don't close server (can add new elements)
@@ -19,13 +25,14 @@ a.free //close ws server
 
 //tools
 WsGUI.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
-// WsGUI.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without shutting down
+WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without shutting down
 NetAddr.myIP; //useful for connecting external clients
 
 
 //background and a title
 a.backgroundColor_(Color.blue)
 a.backgroundColor_(Color.green)
+o.backgroundColor_(Color.green) //second win
 a.title_("new title")
 
 //button - simple
@@ -200,7 +207,7 @@ a.free
 
 // LAYOUTS
 
-WsGUI.killPython // if needed
+// WsGUI.killPython // if needed... shouldn't be.
 a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
  // create 3 buttons
