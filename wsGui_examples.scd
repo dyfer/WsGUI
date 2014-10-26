@@ -19,7 +19,7 @@ a.free //close ws server
 
 //tools
 WsGUI.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
-WsGUI.killPython //if something hangs... tough world; should not be necessary now, when we're checking for port availability on start
+// WsGUI.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without shutting down
 NetAddr.myIP; //useful for connecting external clients
 
 

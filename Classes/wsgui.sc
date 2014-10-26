@@ -1,8 +1,14 @@
-WsGUI {
-	var <wwwPort, <oscPath, <>actionOnClose, suppressPosting;
-	var <wsPid, <wwwPid, <wwwPipe;
+//correct wwwPath vs globalWwwPath
+//add to init: thisWwwPath, windowID
+//add subpaths to updateWsPortInFile and setDisconnectMessage...
+//add default redirection
+
+WsWindow {
+	var <title, <setAsDefault, <>actionOnClose, suppressPosting;
+	var <wsPid, <oscPath;//, <wwwPipe;
 	var <wsPort, <wsOscPort; //chosen automatically
-	var <>onConnection, <>onDisconnection; //not needed?
+	var <wwwPath;
+	// var <>onConnection, <>onDisconnection; //not needed?
 	// var <pythonPath, <bridgePath, <classPath;
 	var <scSendNetAddr, <socketsResponder, <clientDict;//, <guiObjDict
 	var <guiObjects; //guiObjects: name -> [widgetParams, function, controlSpec]
@@ -11,25 +17,79 @@ WsGUI {
 	var <bodyID; //this will be id of the object referring to the body, when the background is first set;
 	var <titleID; //this will be id of the object referring to the title, when the background is first set;
 	var <curWidgetID = 0;
+	var thisWwwPath, <windowID; //for multiple windows
 	var styleKeys, numericOutputKinds;
+	var <wwwServerStartedFromWsWindow = false;
 
 	classvar <>pythonPath, <>bridgePath, <>checkPortPath, <classPath; //set in init...
 	// classvar <>jsFilePath = "www/ws.js";
-	classvar <>wwwPath = "www"; //relative to class
+	classvar oscRootPath = "/sockets";
+	classvar currentWindowID; 
+	classvar <>globalWwwPath = "www"; //relative to class
 	classvar <>jsFilename = "wsport.js"; //relative to class
 	classvar <>discMsgFile = "discMessage.js";
+	classvar <wwwPid, <wwwPort;
+	classvar <allWsWindows = IdentityDictionary.new;
+	classvar <sourceWwwPath = "wwwSource";
+	// classvar <sourceFiles = 
 
-	*new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
-		oscPath = "/sockets", actionOnClose, suppressPosting = false|
-		^super.newCopyArgs(wwwPort, // wsPort, wsOscPort,
-			oscPath, actionOnClose, suppressPosting).init;
+	// *new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
+	// 	oscPath = "/sockets", actionOnClose, suppressPosting = false|
+	// 	^super.newCopyArgs(wwwPort, // wsPort, wsOscPort,
+	// 		oscPath, actionOnClose, suppressPosting).init;
+	// }
+	*new {|title, wwwPort, actionOnClose, suppressPosting = false|
+		^super.newCopyArgs(title, setAsDefault, actionOnClose, suppressPosting).init(wwwPort);
 	}
 
-	*killPython { //sometimes needed
+	*startWwwServer {arg port = 8000, suppressPosting = false;
+		var rootPath = globalWwwPath;
+		var cmd;
+		if(rootPath[0] == "~", {//it's relative to home directory
+			rootPath = rootPath.standardizePath;
+		}, {
+			if(rootPath[0] != "/", {//it's relative to the class file
+				rootPath = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ rootPath;
+			});
+		});
+		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
+		postf("Starting www www server, root path: %\n", rootPath);
+		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
+		cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
+		if(wwwPid.notNil.{
+			if(this.checkWwwPort, {
+				wwwPid = cmd.unixCmd({
+					"Python www (www) server stopped!".postln;
+					wwwPid = nil;
+					this.killWS;
+				}, postOutput: suppressPosting.not);
+			}, {
+				Error("WsWindow www server: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
+			});
+		}, {
+			("WWW server at port " ++ wwwPort ++ " seems already running, new server NOT started, continuing...").warn; 
+		});
+	}
+
+	*stopWwwServer {
+		if(wwwPid.notNil, {
+			postf("Stopping www server, pid %\n", wwwPid);
+			("kill" + wwwPid).unixCmd;
+		}, {
+			// "Www server not running, nothing to kill".postln;
+		});
+	}
+
+	*checkWwwPort {
+		^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
+	}
+
+
+	*killPython { //use this ONLY if you lost python process PID - like overwriting a variable or recompiling library
 		"killall python".unixCmd
 	}
 
-	*updateWsPortInFile {arg port = 8000;
+	updateWsPortInFile {arg port = 8000;
 		var path = wwwPath; //www path
 		var filename = jsFilename;
 		var fileContentsArray, filePath;
@@ -60,8 +120,10 @@ WsGUI {
 		"Writing done.".postln;
 	}
 
+	//this needs to be run before starting WsWindow
 	*setDisconnectedMessage {|message|
-		var path = wwwPath; //www path
+		// var path = wwwPath; //www path
+		var path = globalWwwPath; //change the source file
 		var filename = discMsgFile;
 		var fileContentsArray, filePath;
 		if(path[0] == "~", {//it's relative to home directory
@@ -91,44 +153,55 @@ WsGUI {
 		"Writing done.".postln;
 	}
 
-	init {
-		actionOnClose ?? {actionOnClose = {}};
+	init {|wwwPortArg|
+		//first check if the name is valid
+		title ?? {title = "default"};
+		windowID = title.replace(" ", "").asSymbol;
+		if(allWsWindows[windowID].notNil, {
+			Error("WsWindow with name \"" ++ title ++ "\" already exists. Please use other title or remove existing WsWindow").throw;
+		}, {
+			allWsWindows[windowID] = this;
+			
+			actionOnClose ?? {actionOnClose = {}};
+			pythonPath ?? {pythonPath = "python"};
+			classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
+			bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
+			checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
 
-		pythonPath ?? {pythonPath = "python"};
-		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
-		bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
-		checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
+			//init vars
+			guiObjects = IdentityDictionary.new(know: true);
+			clientDict = IdentityDictionary.new(know: true);
+			namesToIDs = IdentityDictionary.new(know: true);
+			styleKeys = [\bounds, \color, \backgroundColor, \textColor, \font, \textAlign, \css]; //this are all symbols that should not be intepreted as object parameters, but rather as stylig (CSS) elements; custom css string can be added under \css key
+			numericOutputKinds = [\slider];
 
-		//init vars
-		guiObjects = IdentityDictionary.new(know: true);
-		clientDict = IdentityDictionary.new(know: true);
-		namesToIDs = IdentityDictionary.new(know: true);
-		styleKeys = [\bounds, \color, \backgroundColor, \textColor, \font, \textAlign, \css]; //this are all symbols that should not be intepreted as object parameters, but rather as stylig (CSS) elements; custom css string can be added under \css key
-		numericOutputKinds = [\slider];
+			//check www server, start if port is available
+			wwwPortArg !? {
+				// if(this.checkWwwPort, {
+				// 	this.startWwwServer(wwwPort)
+				// }, {
+				// 	Error("WsWindow: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
+				// })
+				WsWindow.startWwwServer(wwwPortArg);
+				wwwServerStartedFromWsWindow = true;
+			};
 
-		//check static server, start if port is available
-		wwwPort !? {
-			if(this.checkStaticPort, {
-				this.startStaticServer(wwwPort)
-			}, {
-				Error("WsGUI: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
-			})
-		};
+			//path
+			wwwPath = globalWwwPath ++ "/" ++ windowID.asString;
 
-		this.getPorts; //get next free port for websockets and udp communication
-		WsGUI.updateWsPortInFile(wsPort);
-		this.startBridge; //to give time
+			this.getPorts; //get next free port for websockets and udp communication
+			this.updateWsPortInFile(wsPort);
+			//important - create individual path for osc messages
+			oscPath = oscRootPath ++ "/" ++ wsPort.asString;
+			"oscPath: ".post; oscPath.postln;
+			this.startBridge; //to give time
+		});
 	}
 
 	getPorts {
 		wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger;
 		wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
 	}
-
-	checkStaticPort {
-		^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
-	}
-
 
 	startBridge {
 		var cmd;
@@ -138,7 +211,11 @@ WsGUI {
 		wsPid = cmd.unixCmd({|code, exPid|
 			("Bridge stopped, exit code: " ++ code ++ "; cleaning up").postln;
 			wsPid = nil;
-			this.killWWW;
+			// this.killWWW;
+			//stop www server only if it was started with this window instance:
+			if(wwwServerStartedFromWsWindow, {
+				WsWindow.stopWwwServer;
+			});
 			this.prCleanup;
 		}, suppressPosting.not);
 
@@ -148,31 +225,61 @@ WsGUI {
 		scSendNetAddr = NetAddr("localhost", wsOscPort);
 	}
 
-	startStaticServer {arg port = 8000;
-		var rootPath = wwwPath;
-		var cmd;
-		if(rootPath[0] == "~", {//it's relative to home directory
-			rootPath = rootPath.standardizePath;
-		}, {
-			if(rootPath[0] != "/", {//it's relative to the class file
-				rootPath = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ rootPath;
-			});
-		});
-		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
-		postf("Starting static www server, root path: %\n", rootPath);
-		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
-		cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
-		// if(suppressPosting, {
-		// 	cmd = cmd + "> /dev/null";
-		// });
-		// postf("cmd: %\n", cmd);
-		wwwPid = cmd.unixCmd({
-			"Python www (static) server stopped!".postln;
-			wwwPid = nil;
-			this.killWS;
-		}, postOutput: suppressPosting.not);
-		// wwwPipe = Pipe.new(cmd, "w");
+	// startWwwServer {arg port = 8000;
+	// 	var rootPath = wwwPath;
+	// 	var cmd;
+	// 	if(rootPath[0] == "~", {//it's relative to home directory
+	// 		rootPath = rootPath.standardizePath;
+	// 	}, {
+	// 		if(rootPath[0] != "/", {//it's relative to the class file
+	// 			rootPath = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ rootPath;
+	// 		});
+	// 	});
+	// 	rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
+	// 	postf("Starting www www server, root path: %\n", rootPath);
+	// 	// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
+	// 	cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
+	// 	// if(suppressPosting, {
+	// 	// 	cmd = cmd + "> /dev/null";
+	// 	// });
+	// 	// postf("cmd: %\n", cmd);
+	// 	wwwPid = cmd.unixCmd({
+	// 		"Python www (www) server stopped!".postln;
+	// 		wwwPid = nil;
+	// 		this.killWS;
+	// 	}, postOutput: suppressPosting.not);
+	// 	// wwwPipe = Pipe.new(cmd, "w");
+	// }
+
+	addSubdirectory {
+		var cmd, copyCmd;
+		//mkdir
+		cmd = "mkdir " ++ classPath.withTrailingSlash ++ wwwPath;
+		"Creading subdirectory, command: ".post; cmd.postln;
+		// cmd.systemCmd;
+		
+		//copy files
+		copyCmd = "cp " ++ classPath.withTrailingSlash ++ sourceWwwPath ++ "/*" ++ " " ++ classPath.withTrailingSlash ++ wwwPath;
+		"Creading subdirectory, command: ".post; copyCmd.postln;
+		// copyCmd.systemCmd;
 	}
+
+	removeSubdirectory {
+		var rmFilesCmd, rmDirCmd;
+		//remove all files - or just known files?
+		//all for now
+				
+		//rmFilesCmd
+		rmFilesCmd = "rm " ++ classPath.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*";
+		"Removing files from current directory, command: ".post; rmFilesCmd.postln;
+		// rmFilesCmd.systemCmd;
+		
+		//rmDirCmd
+		rmDirCmd = "rm " ++ classPath.withTrailingSlash ++ wwwPath;
+		"Removing subdirectory, command: ".post; rmDirCmd.postln;
+		// rmDirCmd.systemCmd;
+		
+		//remove directory
 
 	prPrepareGlobalResponders {
 		socketsResponder = OSCdef(oscPath, {|msg, time, addr, recvPort|
@@ -306,14 +413,14 @@ WsGUI {
 		});
 	}
 
-	killWWW {
-		if(wwwPid.notNil, {
-			postf("Killing www server, pid %\n", wwwPid);
-			("kill" + wwwPid).unixCmd;
-		}, {
-			// "Static server not running, nothing to kill".postln;
-		});
-	}
+	// killWWW {
+	// 	if(wwwPid.notNil, {
+	// 		postf("Killing www server, pid %\n", wwwPid);
+	// 		("kill" + wwwPid).unixCmd;
+	// 	}, {
+	// 		// "Www server not running, nothing to kill".postln;
+	// 	});
+	// }
 
 	free {
 		scSendNetAddr.sendMsg("/quit");
@@ -324,7 +431,9 @@ WsGUI {
 	prCleanup {
 		//also close extra open ports here? probably not necessary
 		socketsResponder.free;
-		this.removeAllImageLinks; //clean images
+		// this.removeAllImageLinks; //clean images - not needed when removing whole directory
+		this.removeSubdirectory;
+		allWsWindows.removeAt(windowID);
 		// disconReponder.free;
 		// this.clear;
 		actionOnClose.value;
@@ -494,21 +603,23 @@ WsGUI {
 
 	createImageLink {|path, id|
 		var cmd, relativeImgPath;
-		relativeImgPath = "images/" ++ id.asString;
-		cmd = "ln -sf " ++ path.escapeChar($ ) + (classPath.dirname ++ "/www/" ++ relativeImgPath).escapeChar($ );
+		// relativeImgPath = "images/" ++ id.asString; //to not have to deal with removing the directory afterwards...
+		relativeImgPath = id.asString;
+		cmd = "ln -sf " ++ path.escapeChar($ ) + (classPath.dirname.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
 		"Creating symlink: ".post;
 		// cmd.postln;
-		cmd.unixCmdGetStdOut; //synchronously, so we have the link on time
+		cmd.systemCmd; //synchronously, so we have the link on time
 		^relativeImgPath;
 	}
 
-	removeAllImageLinks {
-		var cmd;
-		cmd = "rm " ++ (classPath.dirname ++ "/www/images/*").escapeChar($ );
-		"Removing image links".postln;
-		// cmd.postln;
-		cmd.unixCmd;
-	}
+		//obsolete, all files are removed anyway
+	// removeAllImageLinks {
+	// 	var cmd;
+	// 	cmd = "rm " ++ (classPath.dirname ++ "/www/images/*").escapeChar($ );
+	// 	"Removing image links".postln;
+	// 	// cmd.postln;
+	// 	cmd.unixCmd;
+	// }
 
 	removeWidget {|idOrName|
 		var id;
@@ -763,9 +874,9 @@ WsWidget {
 	var ws, <bounds;
 	var <id;
 
-	// TODO: change so wsGUI isn't necessary at this stage
-	add {|wsGUI, argbounds, kind, sendNow = true|
-		ws = wsGUI;
+	// TODO: change so wsWindow isn't necessary at this stage
+	add {|wsWindow, argbounds, kind, sendNow = true|
+		ws = wsWindow;
 		argbounds !? {bounds = argbounds};
 		id = ws.addWidget(nil, kind, {},
 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
@@ -884,25 +995,25 @@ WsWidget {
 
 WsSimpleButton : WsWidget {
 
-	*new {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: true);
+	*new {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: false);
 	}
 }
 
 WsButton : WsWidget {
 	var <value = 0, <numStates = 0, <states;
 
-	*new {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: true);
+	*new {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: true);
 	}
 
-	*init {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: false);
+	*init {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: false);
 	}
 
 	// super.action_ overwrite to include incrementing the state counter in the function
@@ -949,26 +1060,26 @@ WsButton : WsWidget {
 
 WsStaticText : WsWidget {
 
-	*new {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \text, sendNow: true);
+	*new {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \text, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \text, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \text, sendNow: false);
 	}
 }
 
 WsImage : WsWidget {
 	var <path;
 
-	*new {|wsGUI, bounds, path|
-		^super.new.add(wsGUI, bounds, \image, sendNow: true).addPath(path);
+	*new {|wsWindow, bounds, path|
+		^super.new.add(wsWindow, bounds, \image, sendNow: true).addPath(path);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds, path|
-		^super.new.add(wsGUI, bounds, \image, sendNow: false).addPath(path);
+	*init { |wsWindow, bounds, path|
+		^super.new.add(wsWindow, bounds, \image, sendNow: false).addPath(path);
 	}
 
 	addPath { |path|
@@ -991,13 +1102,13 @@ WsImage : WsWidget {
 // TODO: reevaluate the difference between this and EZSlider
 WsSlider : WsWidget {
 
-	*new { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \slider, sendNow: true);
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \slider, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \slider, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \slider, sendNow: false);
 	}
 
 	value_ {|val|
@@ -1026,13 +1137,13 @@ WsEZSlider : WsSlider { //this should later be implemented as call to WsSlider a
 
 WsPopUpMenu : WsWidget {
 
-	*new { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \menu, sendNow: true);
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \menu, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \menu, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \menu, sendNow: false);
 	}
 
 	items_ {|itemArr|
@@ -1075,13 +1186,13 @@ WsPopUpMenu : WsWidget {
 
 WsCheckbox : WsWidget {
 
-	*new { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \checkbox, sendNow: true);
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \checkbox, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \checkbox, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \checkbox, sendNow: false);
 	}
 
 	value_ {|val|
