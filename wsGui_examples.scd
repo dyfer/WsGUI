@@ -17,9 +17,12 @@ a.free
 a.clear //remove all elements, don't close server (can add new elements)
 a.free //close ws server
 
+//freeAll - close all windows/servers
+WsWindow.closeAll; //use that instead of killPython
+
 //tools
-WsGUI.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
-WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without shutting down
+WsWindow.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
+WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without closing/freeing); in most cases WsWindow.closeAll should be enough
 NetAddr.myIP; //useful for connecting external clients
 
 
@@ -201,7 +204,7 @@ a.free
 // LAYOUTS
 
 // WsGUI.killPython // if needed... shouldn't be.
-a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
+a = WsWindow.new("title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
  // create 3 buttons
 [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)

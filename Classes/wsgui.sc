@@ -1,7 +1,4 @@
-//correct wwwPath vs globalWwwPath //done
-//add to init: thisWwwPath, windowID //done
-//add subpaths to updateWsPortInFile and setDisconnectMessage... //done
-//add default redirection
+//Marcin - note to self: freeing should be called close, as for a window; if port was passed then check if there are any remaining WsWindows and close www server with the last one
 
 WsWindow {
 	var title, <isDefault, <>actionOnClose, suppressPosting;
@@ -84,13 +81,18 @@ WsWindow {
 			postf("Stopping www server, pid %\n", wwwPid);
 			("kill" + wwwPid).unixCmd;
 		}, {
-			// "Www server not running, nothing to kill".postln;
+			"Www server not running, nothing to kill".postln;
 		});
 	}
 
 	*checkWwwPort {
 		this.setClassVars;
 		^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
+	}
+
+	*closeAll {
+		this.allWsWindows.do(_.free);
+		this.stopWwwServer;
 	}
 
 
