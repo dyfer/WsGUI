@@ -421,8 +421,7 @@ WsGUI {
 			//add text-decoration here as well - bold, italic?
 		};
 		dict[\textAlign] !? {cssDict.put('text-align', dict[\textAlign].asString)};
-		// "cssDict: ".post;
-		// cssDict.postln;
+
 		//create string
 		str = "";
 		cssDict.keysValuesDo({|key, value, inc|
@@ -431,8 +430,7 @@ WsGUI {
 			str = str ++ keyString ++ ":" ++ valString ++ ";";
 		});
 		dict[\css] !? {str = str ++ dict[\css].asString}; //add custom css
-		// str = str ++ "}";//why was that?
-		// postf("Style string: %\n", str);
+
 		if(cssDict.size > 0, {
 			^str;
 		}, {
@@ -443,13 +441,15 @@ WsGUI {
 	addWidget {arg name, kind = \button, func = {}, parameters = IdentityDictionary.new, spec = [0, 1].asSpec, sendNow=true;
 		var paramsDict, id, okToAddWidget, step;
 		if(name.notNil, {
-			if(namesToIDs[name].isNil && name.isKindOf(SimpleNumber).not, {
-				id = this.prGetCurrentIdAndIncrement;
-				namesToIDs.put(name, id);
-				okToAddWidget = true;
-			}, {
-				postf("Widget assigned to name % already exists or you're trying to use SimpleNumber as id, not adding\n", name);
-				okToAddWidget = false;
+			if(namesToIDs[name].isNil && name.isKindOf(SimpleNumber).not,
+				{
+					id = this.prGetCurrentIdAndIncrement;
+					namesToIDs.put(name, id);
+					okToAddWidget = true;
+				},{
+					warn( format(
+						"Widget assigned to name % already exists or you're trying to use SimpleNumber as id, not adding\n", name));
+					okToAddWidget = false;
 			});
 		}, {
 			id = this.prGetCurrentIdAndIncrement;
@@ -497,7 +497,7 @@ WsGUI {
 		relativeImgPath = "images/" ++ id.asString;
 		cmd = "ln -sf " ++ path.escapeChar($ ) + (classPath.dirname ++ "/www/" ++ relativeImgPath).escapeChar($ );
 		"Creating symlink: ".post;
-		// cmd.postln;
+
 		cmd.unixCmdGetStdOut; //synchronously, so we have the link on time
 		^relativeImgPath;
 	}
@@ -506,7 +506,7 @@ WsGUI {
 		var cmd;
 		cmd = "rm " ++ (classPath.dirname ++ "/www/images/*").escapeChar($ );
 		"Removing image links".postln;
-		// cmd.postln;
+
 		cmd.unixCmd;
 	}
 
@@ -515,22 +515,20 @@ WsGUI {
 		if(idOrName.isKindOf(SimpleNumber), {
 			id = idOrName;
 		}, {
-			// "bfore id".postln;
 			id = namesToIDs[idOrName];
-			// "after id".postln;
 			namesToIDs.removeAt(idOrName);
 		});
-		// postf("id: %\n", id);
+
 		if(guiObjects[id].notNil, {
 			guiObjects.removeAt(id);
-			// "before remove from all".postln;
 			this.prRemoveObjFromAll(id);
 		}, {
 			postf("No object at id %, not removing\n", id);
 		});
 	}
 
-	clear {//remove all widgets - convenience method
+	// remove all widgets - convenience method
+	clear {
 		this.removeAllWidgets;
 	}
 
@@ -602,7 +600,6 @@ WsGUI {
 		});
 	}
 
-	// make addLayout?
 	layout_ { |wsLayout|
 		var startX, startY, remHSpace, remVSpace;
 		// layouts = layouts.add(wsLayout); // to be added for introspection (i.e. .children)
@@ -618,7 +615,7 @@ WsGUI {
 			{ remVSpace = remHSpace = 1; startX = startY = 0; }
 		);
 
-		postf("laying out in these absolute bounds: %, %, %, %\n", startX, startY, remHSpace, remVSpace);
+		// postf("laying out in these absolute bounds: %, %, %, %\n", startX, startY, remHSpace, remVSpace);
 
 		wsLayout.isKindOf(WsLayout).if{
 			this.buildLayout(wsLayout, Rect(startX, startY, remHSpace, remVSpace));
@@ -637,20 +634,20 @@ WsGUI {
 		loKind ?? {"layout is not a WsVLayout or WsHLayout".throw};
 		elements = layout.elements;
 		nItems = elements.size;
-		postf( "number of items: %, %\n", nItems, elements);
+		// postf( "number of items: %, %\n", nItems, elements);
 		// element dimensions normalized 0>1 (1 being the full amount of the parent's bounds)
 		dimsNorm = elements.collect{|elem|
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
 				{ elem.bounds.notNil.if(
 					{ 	//"returning a dimension of bound ".post; // debug
-						(loKind == \vert).if({elem.bounds.height},{elem.bounds.width}).postln },
+						(loKind == \vert).if({elem.bounds.height},{elem.bounds.width}) },
 					{ 	//"returning unspecified dimension".postln; // debug
 						'unspecified' }
 					);
 				},{ elem } // assumed to be either nil or a Number
 			);
 		};
-		dimsNorm.postln;
+		// dimsNorm.postln;
 
 		// assign layouts or widgets with nil (unspecified) width to a width of
 		// 1/numNonNilItems and rescale other items accordingly in case a
@@ -661,19 +658,19 @@ WsGUI {
 		// unspecDims =	dimsNorm.select({|dim| dim == 'unspecified'}); // numbers and 'unspecified's
 
 		nonNilDims =	dimsNorm.select({|dim| dim.notNil}); // numbers and 'unspecified's
-		postf("nonNilDims: %\n",nonNilDims);
+		// postf("nonNilDims: %\n",nonNilDims);
 
 		unKnownDimSize =	nonNilDims.size.reciprocal; // size assigned to unspecified dimension
 		// unKnownDimSize =	unspecDims.size.reciprocal; // size assigned to unspecified dimension
-		postf("unKnownDimSize: %\n",unKnownDimSize);
+		// postf("unKnownDimSize: %\n",unKnownDimSize);
 
 		nonNilDims =	nonNilDims.replace('unspecified', unKnownDimSize);
-		postf("nonNilDims: %\n", nonNilDims);
-		postf("sum: %\n", nonNilDims.sum);
+		// postf("nonNilDims: %\n", nonNilDims);
+		// postf("sum: %\n", nonNilDims.sum);
 
 		if(nonNilDims.sum > 1,
 			{ 	// dimensions are rescaled
-				"rescaling element dimension".postln;
+				// "rescaling element dimension".postln;
 				nonNilDims = nonNilDims.normalizeSum; // rescale all down to sum to 1
 				dimsAbs = dimsNorm.collect({ |item, i| var dim;
 					item.isNil.if(
@@ -703,7 +700,7 @@ WsGUI {
 		// convert to absolute page widths
 		dimsAbs = dimsAbs * (loKind == \vert).if({parBoundsRect.height},{parBoundsRect.width});
 
-		postf( "dimensions norm:%\ndimensions abs :%\navailable free space:%\nnilSize: %\n", dimsNorm, dimsAbs, freeSpace, nilSize);
+		// postf( "dimensions norm:%\ndimensions abs :%\navailable free space:%\nnilSize: %\n", dimsNorm, dimsAbs, freeSpace, nilSize);
 
 		// place the widgets
 		nextX =	parBoundsRect.left;
@@ -717,10 +714,10 @@ WsGUI {
 				switch( loKind,
 					\vert,	{
 						myHeight = dimsAbs[i];
-						myWidth = elem.bounds.notNil.if(
-							{ postf("multiplying elem width: % by parent width: %\n",
-								elem.bounds.width, parBoundsRect.width);
-								elem.bounds.width * parBoundsRect.width
+						myWidth = elem.bounds.notNil.if( {
+							// postf("multiplying elem width: % by parent width: %\n",
+							// elem.bounds.width, parBoundsRect.width);
+							elem.bounds.width * parBoundsRect.width
 							},{ parBoundsRect.width }
 						);
 					},
