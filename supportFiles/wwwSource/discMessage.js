@@ -1,1 +1,1 @@
-var discMessage = "Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly";
+var discMessage = "<h3>Connection interrupted</h3><h1>Marcin is working hard to fix this...<br><br>Thank you for your patience!</h1>";

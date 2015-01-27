@@ -18,11 +18,12 @@ a.clear //remove all elements, don't close server (can add new elements)
 a.free //close ws server
 
 //freeAll - close all windows/servers
-WsWindow.closeAll; //use that instead of killPython
+WsWindow.freeAll; //use that instead of killPython
 
 //tools
 WsWindow.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
-WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without closing/freeing); in most cases WsWindow.closeAll should be enough
+
+/*USE ONLY IN THE LAST RESORT*/ WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without closing/freeing); in most cases WsWindow.closeAll should be enough
 NetAddr.myIP; //useful for connecting external clients
 
 

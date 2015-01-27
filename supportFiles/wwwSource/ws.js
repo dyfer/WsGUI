@@ -110,7 +110,7 @@ function openWS() {
 	
     } catch (ex) {
 	console.log("Socket exception:", ex);
-	checking = setInterval( function(){checkWwwConnection()},3000);
+	// checking = setInterval( function(){checkWwwConnection()},3000);
     }
 }
 

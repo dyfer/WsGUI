@@ -1,4 +1,10 @@
-//Marcin - note to self: freeing should be called close, as for a window; if port was passed then check if there are any remaining WsWindows and close www server with the last one
+/*
+This software was developed with the support of the Center for Digital Arts and Experimental Media (DXARTS), University of Washington (www.dxarts.washington.edu)
+
+Created by Marcin Pączkowski and Michael McCrea 
+*/
+
+//Marcin - note to self: freeing should be called close, as for a window; if port was passed then check if there are any remaining WsWindows and close www server with the last one (???)
 
 WsWindow {
 	var title, <isDefault, <>actionOnClose, suppressPosting;
@@ -18,7 +24,7 @@ WsWindow {
 	var styleKeys, numericOutputKinds;
 	var <wwwServerStartedFromWsWindow = false;
 
-	classvar <>pythonPath, <>bridgePath, <>checkPortPath, <classPath, <classDir; //set in init...
+	classvar <>pythonPath, <>bridgePath, <>staticServerPath, <>checkPortPath, <classPath, <classDir; //set in init...
 	// classvar <>jsFilePath = "www/ws.js";
 	classvar oscRootPath = "/sockets";
 	classvar currentWindowID; 
@@ -31,6 +37,7 @@ WsWindow {
 	classvar <defaultWwwPath = "supportFiles/wwwDefault";
 	classvar <redirectionAddrFile = "whereto.js";
 	classvar <redirectionHtmlFile = "index.html";
+	classvar functionAddedToShutdown = false;
 	// classvar <sourceFiles = 
 
 	// *new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
@@ -42,9 +49,18 @@ WsWindow {
 		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting).init(wwwPort);
 	}
 
+	*addToShutdown {
+		if(functionAddedToShutdown.not, {
+			ShutDown.objects = ShutDown.objects.add({WsWindow.freeAll});
+			functionAddedToShutdown = true;
+		});
+	}
+
 	*startWwwServer {arg port = 8000, suppressPosting = false;
 		var rootPath = globalWwwPath;
 		var cmd;
+		this.setClassVars; //set that first
+		this.addToShutdown;
 		wwwPort = port; //set classvar
 		if(rootPath[0] == "~", {//it's relative to home directory
 			rootPath = rootPath.standardizePath;
@@ -56,23 +72,25 @@ WsWindow {
 		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
 		postf("Starting www server, root path: %\n", rootPath);
 		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
-		cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
+		// cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
+		// staticServerPath
+		cmd = "exec" + pythonPath + "-u" + staticServerPath + port.asString + rootPath; //-u makes posting possible (makes stdout unbuffered)
 		// "wwwPid: ".post; wwwPid.postln;
 		// "class: ".post; wwwPid.class.postln;
 		// "wwwPort: ".post; wwwPort.postln;
 		if(wwwPid.isNil, {
-			if(this.checkWwwPort, {
-				wwwPid = cmd.unixCmd({
-					"Python www server stopped!".postln;
-					wwwPid = nil;
-					// this.killWS;
-				}, postOutput: suppressPosting.not);
-			}, {
-				Error("WsWindow www server: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
-			});
+			// if(this.checkWwwPort, {
+			wwwPid = cmd.unixCmd({
+				"Python www server stopped!".postln;
+				wwwPid = nil;
+				// this.killWS;
+			}, postOutput: suppressPosting.not);
+			// }, {
+				// Error("WsWindow www server: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
+			// });
 		}, {
 			("WWW server at port " ++ wwwPort.asString ++ " seems already running, new server NOT started, continuing...").warn;
-			wwwPort = nil; // clear classvar
+			// wwwPort = nil; // clear classvar - why?
 		});
 	}
 
@@ -90,7 +108,7 @@ WsWindow {
 		^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
 	}
 
-	*closeAll {
+	*freeAll {
 		this.allWsWindows.do(_.free);
 		this.stopWwwServer;
 	}
@@ -103,7 +121,7 @@ WsWindow {
 	//this needs to be run before starting WsWindow
 	*setDisconnectedMessage {|message|
 		// var path = wwwPath; //www path
-		var path = globalWwwPath; //change the source file
+		var path = sourceWwwPath; //change the source file
 		var filename = discMsgFile;
 		var fileContentsArray, filePath;
 		if(path[0] == "~", {//it's relative to home directory
@@ -134,11 +152,12 @@ WsWindow {
 	}
 
 	*setClassVars {
-			pythonPath ?? {pythonPath = "python"};
-			classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
-			classDir ?? {classDir = classPath.dirname};
-			bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
-			checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
+		pythonPath ?? {pythonPath = "python"};
+		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
+		classDir ?? {classDir = classPath.dirname};
+		bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
+		checkPortPath ?? {checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ )};
+		staticServerPath ?? {staticServerPath = (classPath.dirname ++ "/python/simplehttpserver.py").escapeChar($ )};
 	}
 
 	init {|wwwPortArg|
@@ -153,6 +172,7 @@ WsWindow {
 			
 			actionOnClose ?? {actionOnClose = {}};
 			WsWindow.setClassVars;
+			WsWindow.addToShutdown;
 			// pythonPath ?? {pythonPath = "python"};
 			// classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
 			// classDir ?? {classDir = classPath.dirname};
