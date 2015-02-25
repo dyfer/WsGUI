@@ -603,6 +603,7 @@ WsGUI {
 	layout_ { |wsLayout|
 		var startX, startY, remHSpace, remVSpace;
 		// layouts = layouts.add(wsLayout); // to be added for introspection (i.e. .children)
+
 		wsLayout.bounds.notNil.if(
 			{	var bounds;
 				bounds = wsLayout.bounds;
@@ -737,6 +738,7 @@ WsGUI {
 				{elem.isKindOf(WsLayout)} {
 					// "found a WsLayout to lay out: ".post; elem.postln; // debug
 					this.buildLayout(elem, myBounds);
+					elem.bounds_(myBounds); // for introspection
 				}
 				{ elem.isKindOf(WsWidget) } {
 					// postf("placing a WsWidget: % at bounds: %\n", elem, myBounds); // debug
@@ -1108,27 +1110,43 @@ WsCheckbox : WsWidget {
 --------------------------------------
 */
 
-WsLayout {}
-
-WsHLayout : WsLayout {
+WsLayout {
 	// copyArgs
-	var <bounds, <elements;
+	var <>bounds, <elements;
 
 	*new { |bounds ... elements |
 		^super.newCopyArgs(bounds, elements)
 	}
 
-}
-
-WsVLayout : WsLayout {
-	// copyArgs
-	var <bounds, <elements;
-
-	*new { |bounds ... elements |
-		^super.newCopyArgs(bounds, elements)
+	// remove the elements within the layout
+	remove {
+		elements.do(_.remove)
 	}
-
 }
+
+WsHLayout : WsLayout {}
+	// // copyArgs
+	// var <>bounds, <elements;
+	//
+	// *new { |bounds ... elements |
+	// 	^super.newCopyArgs(bounds, elements)
+	// }
+	//
+	// // remove the elements within the layout
+	// remove {
+	// 	elements.do(_.remove)
+	// }
+// }
+
+WsVLayout : WsLayout {}
+// // copyArgs
+// var <>bounds, <elements;
+//
+// *new { |bounds ... elements |
+// 	^super.newCopyArgs(bounds, elements)
+// }
+//
+// }
 
 // mtm adding init vs. new functionality
 // WsWidget { }

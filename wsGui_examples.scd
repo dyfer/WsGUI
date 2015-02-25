@@ -233,6 +233,48 @@ a.free; [~b1, ~b2, ~b3, ~b4, ~b5].do(_.remove)
 ~b5 = WsSimpleButton.init(a, Rect(0,0,0.7,0.4)).string_("5"); // no bounds specified
 )
 
+// adding and removing elements within a layout
+(
+c = 4.collect{WsCheckbox.init(a, nil)};
+t = 4.collect{|i|WsStaticText.init(a, nil).string_("test"++i)};
+d = [c, t].lace(8).clump(2)
+)
+(
+a.layout_(
+	WsVLayout(nil,
+		WsSimpleButton.init(a, Rect(0,0,0.3,0.2)).string_("1"),
+		l = WsHLayout( Rect(0.1,0.1, 1, 0.1),
+			*d.collect{|el|WsVLayout(nil, *el)}
+		),
+		WsSimpleButton.init(a, Rect(0,0,0.3,0.2)).string_("2")
+	)
+)
+)
+// remove middle layout
+l.remove
+// re-create the widgets, or others
+(
+c = 4.collect{WsCheckbox.init(a, nil)};
+t = 4.collect{|i|WsStaticText.init(a, nil).string_("test"++i)};
+// different number of widgets
+d = [c, t].lace(8).clump(2).drop(4.rand)
+)
+// we know the former layout bounds
+l.bounds
+// and individual widgets if necessary
+l.elements.do{|lay| lay.elements.do{|el| el.bounds.postln}}
+// lay out the new widgets in the layout
+(
+a.layout_(
+	l = WsHLayout(l.bounds,
+		*d.collect{|el|WsVLayout(nil, *el)}
+	)
+)
+)
+
+// clear
+a.clear
+
 
 (
 a.layout_( WsHLayout(nil, //Rect(0.15,0.05,0.45, 0.7),
