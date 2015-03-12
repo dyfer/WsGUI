@@ -104,7 +104,7 @@ WsGUI {
 		clientDict = IdentityDictionary.new(know: true);
 		namesToIDs = IdentityDictionary.new(know: true);
 		styleKeys = [\bounds, \color, \backgroundColor, \textColor, \font, \textAlign, \css]; //this are all symbols that should not be intepreted as object parameters, but rather as stylig (CSS) elements; custom css string can be added under \css key
-		numericOutputKinds = [\slider];
+		numericOutputKinds = [\slider, \checkbox];
 
 		//check static server, start if port is available
 		wwwPort !? {
@@ -274,6 +274,10 @@ WsGUI {
 	}
 
 	prUpdateValue {|objID, value, hostport|
+
+		// debug
+		//postf("kind: %\nvalue: %\nvalue class %\n", guiObjects[objID][0][\kind], value, value.class);
+
 		if(numericOutputKinds.includes(guiObjects[objID][0][\kind]), {
 			// value = guiObjects[objID][2].map(value.asFloat); //convert to float and map controlspec here and
 			value = value.asFloat;
@@ -897,11 +901,11 @@ WsButton : WsWidget {
 	var <value = 0, <numStates = 0, <states;
 
 	*new {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: true);
+		^super.new.add(wsGUI, bounds, \button, sendNow: true).prInitAction;
 	}
 
 	*init {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: false);
+		^super.new.add(wsGUI, bounds, \button, sendNow: false).prInitAction;
 	}
 
 	// super.action_ overwrite to include incrementing the state counter in the function
@@ -944,6 +948,19 @@ WsButton : WsWidget {
 		super.textColor_(states[value][1]);
 		super.backgroundColor_(states[value][2]);
 	}
+
+	// assign a default action that advances the button states
+	prInitAction {
+		var defaultAction;
+		defaultAction = {
+			states !? {
+				value = (value + 1) % numStates;
+				this.prUpdateStringAndColors;
+			}
+		};
+		ws.guiObjects[id][1] = defaultAction;
+	}
+
 }
 
 WsStaticText : WsWidget {
@@ -1110,7 +1127,7 @@ WsCheckbox : WsWidget {
 --------------------------------------
 */
 
-WsLayout {
+WsLayout { //}
 	// copyArgs
 	var <>bounds, <elements;
 
@@ -1124,26 +1141,31 @@ WsLayout {
 	}
 }
 
-WsHLayout : WsLayout {}
-	// // copyArgs
-	// var <>bounds, <elements;
-	//
-	// *new { |bounds ... elements |
-	// 	^super.newCopyArgs(bounds, elements)
-	// }
-	//
-	// // remove the elements within the layout
-	// remove {
-	// 	elements.do(_.remove)
-	// }
-// }
-
-WsVLayout : WsLayout {}
+WsHLayout : WsLayout { }
 // // copyArgs
 // var <>bounds, <elements;
 //
 // *new { |bounds ... elements |
 // 	^super.newCopyArgs(bounds, elements)
+// }
+//
+// // remove the elements within the layout
+// remove {
+// 	elements.do(_.remove)
+// }
+// }
+
+WsVLayout : WsLayout { }
+// // copyArgs
+// var <>bounds, <elements;
+//
+// *new { |bounds ... elements |
+// 	^super.newCopyArgs(bounds, elements)
+// }
+//
+// // remove the elements within the layout
+// remove {
+// 	elements.do(_.remove)
 // }
 //
 // }

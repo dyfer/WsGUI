@@ -10,6 +10,7 @@
 //WebSocket interface requires 2 "servers": one to serve static content (initial website, possibly images if used), another one to manage realtime communication (websockets). The former can be substituted for a built-in or another web server. It needs to be configured to serve the "www" folder inside this class' folder. Decoder machines will use their internal apache server, configured to point to that direction
 
 a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
+a = WsGUI.new(8080); //specify port for using internal static web server; nil when serving www folder using another web server
 
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 
@@ -60,14 +61,23 @@ i.states_([
 	["one", Color.black, Color.rand],
 	["two", Color.black, Color.rand]
 ]);
+i.states_([
+["Basic Balance", Color.black, Color.white],
+			["Basic Balance Pending", Color.black, Color.gray],
+]);
+
+
+i.action_({}) //passed button object now
+
 i.value_(0)
-i.value_(1)
+i.value_(2)
 i.item
 i.item_("two") // not implemented
 i.states[i.value][0]
 i.font_(Font.new(\Georgia).size_(24))
 i.action_({|but| "got state: ".post; but.value.postln; "item: ".post; but.item.postln;}) //passed button object now
 i.remove
+
 //button - multistate
 i = WsButton.init(a, Rect(0, 0, 0.2, 0.2)); //WsButton imitates SC style multistate button
 i.states_([
@@ -267,7 +277,7 @@ l.elements.do{|lay| lay.elements.do{|el| el.bounds.postln}}
 (
 a.layout_(
 	l = WsHLayout(l.bounds,
-		*d.collect{|el|WsVLayout(nil, *el)}
+		*d.collect{|el| WsVLayout(nil, *el)}
 	)
 )
 )
