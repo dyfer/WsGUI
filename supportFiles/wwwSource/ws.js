@@ -65,11 +65,11 @@ function onWsClose() {
     //add styke for animation frames
     var css = document.createElement("style");
     css.type = "text/css";
-    css.innerHTML = "@-webkit-keyframes glow { 50% {background-color: red;}}";
+    css.innerHTML = "@-webkit-keyframes glow { 50% {background-color: white;}}";
     document.body.appendChild(css);
     var msgWidget = document.createElement('div');
     msgWidget.innerHTML = "Connection lost, reconnecting...";
-    msgWidget.setAttribute("style", "background-color: white; position: absolute;  bottom: 4px; right: 4px; text-align: right; -webkit-animation: glow 2s infinite alternate;");
+    msgWidget.setAttribute("style", "background-color: red; position: absolute;  bottom: 4px; right: 4px; text-align: right; -webkit-animation: glow 2s infinite alternate;");
     document.body.appendChild(msgWidget);
     console.log(isChecking);
     if(!isChecking) {
