@@ -32,10 +32,10 @@ if sys.argv[1:]:
     OSC_SEND = int(sys.argv[1]) # WS server OSC sent to
 else:
     OSC_SEND = 57120
-if sys.argv[2:]:
-    OSC_RECEIVE = int(sys.argv[2]) # WS server OSC receiver port
-else:
-    OSC_RECEIVE = 7000
+# if sys.argv[2:]:
+#     OSC_RECEIVE = int(sys.argv[2]) # WS server OSC receiver port
+# else:
+#     OSC_RECEIVE = 7000
 if sys.argv[3:]:
     OSC_ADDR = sys.argv[3] # OSC address path
 else:
@@ -49,8 +49,9 @@ OSC_IP = 'localhost'
 
 print "Starting..."
 print "OSC_SEND:", OSC_SEND
-print "OSC_RECEIVE:", OSC_RECEIVE
+# print "OSC_RECEIVE:", OSC_RECEIVE
 print "OSC_ADDR:", OSC_ADDR
+# print "OSC_ADDR:", OSC_ADDR
 # print "WS_PORT:", WS_PORT
 
 print "preparing OSC client (sending)"
@@ -59,8 +60,19 @@ oscClient.connect( (OSC_IP, OSC_SEND) )
 
 print "preparing OSC server"
 # osc_server = OSC.ThreadingOSCServer(("localhost", OSC_RECEIVE))
-osc_server = OSC.ThreadingOSCServer(("127.0.0.1", OSC_RECEIVE))
+osc_server = OSC.ThreadingOSCServer((OSC_IP, 0))
+# osc_server = OSC.ThreadingOSCServer(("127.0.0.1", OSC_RECEIVE))
 # osc_server = OSC.ForkingOSCServer(("localhost", OSC_RECEIVE))
+# print "osc_server.server_address: ", osc_server.server_address[1];
+OSC_RECEIVE = osc_server.server_address[1];
+print "OSC_RECEIVE:", OSC_RECEIVE
+#send through OSC:
+oscMsg = OSC.OSCMessage()
+oscMsg.setAddress(OSC_ADDR)
+oscMsg.append('oscport')        
+oscMsg.append(OSC_RECEIVE);
+oscClient.send(oscMsg)
+
 
 
 def main_osc_callback(path, tags, args, source):

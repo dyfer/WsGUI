@@ -304,9 +304,9 @@ WsWindow {
 		});
 	}	
 
-	getPorts {
+	getPorts { //moved to prPrepareGlobalResponders
 		// wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger; moved to the responder!
-		wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
+		// wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
 	}
 
 	startBridge {
@@ -330,7 +330,7 @@ WsWindow {
 		this.prPrepareGlobalResponders; //needs to be done after starting node, so node doesn't end up binding to osc receive port
 
 		//prepare send port
-		scSendNetAddr = NetAddr("localhost", wsOscPort);
+		// scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
 	}
 
 	// startWwwServer {arg port = 8000;
@@ -417,11 +417,16 @@ WsWindow {
 				\remove, {this.removeWsClient(hostport)},
 				\data, {this.interpretWsData(hostport, data)},
 				\wsport, {
-					wsPort = hostport; //2nd argument
+					wsPort = hostport.asInteger; //2nd argument
+					// scSendNetAddr ?? {
 					this.addSubdirectory;
 					this.updateWsPortInFile(wsPort); //moved to OSC responder
 					this.copyFiles;
 					"received ws port: ".post; wsPort.postln;
+				},
+				\oscport,{
+					wsOscPort = hostport.asInteger; //2nd argument
+					scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
 				}
 			);
 		}, oscPath);
@@ -429,7 +434,9 @@ WsWindow {
 
 	sendMsg {|dest, msg|
 		// "Sending from SC: ".post; [dest, msg].postln;
-		scSendNetAddr.sendMsg(dest, msg);
+		if(scSendNetAddr.notNil, { //just in case
+			scSendNetAddr.sendMsg(dest, msg);
+		});
 		// scSendNetAddr.sendBundle(0, dest, msg);
 	}
 
