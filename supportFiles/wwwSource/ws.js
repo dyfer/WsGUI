@@ -1,4 +1,4 @@
-// var wsPort = 9999; //in a separate file now, set from SC
+//var wsPort = 9999; //in a separate file now, set from SC
 //var discMessage = "this will show up after loosing connection to websockets" //as above
 var initialMsg = true;
 var isConnected = false;
@@ -7,34 +7,46 @@ var checking;
 var ws;
 var documentID;
 
-//this is not working as expected... since opened browser window will block static port when used
-// function checkWwwConnection(){
-//     var req = new XMLHttpRequest();
-//     var staticConnection = true;
-//     console.log("checking connection")
-//     isChecking = true;
-//     var url = document.location;
-//     req.open('GET', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), false); //checking for server connection with a timestamp
-//     try {
-// 	req.send(null);
-//     } catch (ex) {
-// 	console.log("no connection");
-// 	isChecking
-// 	staticConnection = false;
-//     }
-//     if(staticConnection) {
-// 	location.reload()
-//     }
-
-//     // var headers = req.getAllResponseHeaders().toLowerCase();
-//     // var status = req.status;
-//     // console.log(req);
-//     // console.log(status);
-// }
-
+// this is not working as expected... since opened browser window will block static port when used
 function checkWwwConnection(){
-    location.reload()
+    var req = new XMLHttpRequest();
+    req.onload = function(){
+      console.log("req.status: ", req.status);
+      if(req.status == 200){ //refresh if connection status is OK (200) - means the file exists
+        // console.log("no connection");
+        // staticConnection = false;
+          // }
+          // if(staticConnection) {
+        isChecking = false;
+        // console.log("I'm refreshing now");
+        location.reload();
+      }
+    }
+    // var staticConnection = true;
+    console.log("checking connection")
+    isChecking = true;
+    // var url = document.location;
+    // req.open('GET', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), false); //checking for server connection with a timestamp
+    var url = document.location + "ws.js"; //check for the ws.js file (this file) existence
+    req.open('GET', url += ((/\?/).test(url) ? "&" : "?"), false); //checking for server connection with a timestamp
+    req.send();
+    // try {
+	// req.send(null);
+    // } catch (ex) {
+
+
+
+    // }
+
+    // var headers = req.getAllResponseHeaders().toLowerCase();
+    // var status = req.status;
+    // console.log(req);
+    // console.log(status);
 }
+
+// function checkWwwConnection(){
+//     location.reload()
+// }
 
 // checking = setInterval( function(){checkWwwConnection()},3000); //start here
 openWS(); //start
@@ -48,11 +60,21 @@ function onWsOpen() {
 
 function onWsClose() {
     // document.body.innerHTML = "Socket connection closed, interface cleared";
-    document.body.style.background = "#ffffff"; //white background
-    document.body.innerHTML = discMessage;
-    // console.log(isConnected);
+    // document.body.style.background = "#ffffff"; //white background
+    // document.body.innerHTML = discMessage;
+    //add styke for animation frames
+    var css = document.createElement("style");
+    css.type = "text/css";
+    css.innerHTML = "@-webkit-keyframes glow { 50% {background-color: red;}}";
+    document.body.appendChild(css);
+    var msgWidget = document.createElement('div');
+    msgWidget.innerHTML = "Connection lost, reconnecting...";
+    msgWidget.setAttribute("style", "background-color: white; position: absolute;  bottom: 4px; right: 4px; text-align: right; -webkit-animation: glow 2s infinite alternate;");
+    document.body.appendChild(msgWidget);
+    console.log(isChecking);
     if(!isChecking) {
-	checking = setInterval( function(){checkWwwConnection()},6000);
+      // console.log("!isChecking");
+	checking = setInterval( function(){checkWwwConnection()},1000);
     }
     isConnected = false;
 }
@@ -60,7 +82,7 @@ function onWsClose() {
 
 function openWS() {
     try {
-	
+
 	var host = "ws://" + window.location.hostname + ":" + wsPort;
 	console.log("Host:", host);
 
@@ -72,12 +94,12 @@ function openWS() {
 	//maybe clear page body here?
 	initialMsg = true;
     };
-	
+
 	ws.onclose = function (param) {
 	    onWsClose();
 	    console.log("Socket closed.");
 	};
-	
+
 	ws.onmessage = function (param) {
 	    // console.log("Socket full:", param);
 	    console.log("Socket message:", param.data);
@@ -102,12 +124,12 @@ function openWS() {
 		break;
 	    }
 	};
-	
+
 	ws.onerror = function (er) {
 	    console.log("Socket error:", er);
 	    document.body.innerHTML = "Socket error: " + er;
 	};
-	
+
     } catch (ex) {
 	console.log("Socket exception:", ex);
 	// checking = setInterval( function(){checkWwwConnection()},3000);
@@ -202,11 +224,11 @@ var addWidget = function(id, params) {
 	break;
     // case "knob": //this will require additional js library probably?
 	// break;
-    case "body": //main body of the document, for background styling for now 
+    case "body": //main body of the document, for background styling for now
 	thisWidget = document.body; //should be enough to style it?
 	break;
     case "title": //document; can't be assigned an id
-	// thisWidget = document; 
+	// thisWidget = document;
 	// documentID = id;
 	break;
     case "text":
@@ -229,7 +251,7 @@ var addWidget = function(id, params) {
 
     // updateWidget(id, params); //this was not working, there was no widget at the id yet
     updateWidgetObj(thisWidget, params);
-    if((kind != "body") && (kind != "title")) { 
+    if((kind != "body") && (kind != "title")) {
 	document.body.appendChild(thisWidget)
     }
 }
@@ -258,12 +280,12 @@ var updateWidgetObj = function(thisWidget, params) {
 		// console.log("setting value");
 	    } else if (key == 'menuItems') {
 		var menuLength = thisWidget.options.length;
-		for (var i = 0; i < menuLength; i++) { 
+		for (var i = 0; i < menuLength; i++) {
 		    console.log("removing ", i);
 		    thisWidget.options.remove(menuLength - i - 1);
-		} 
+		}
 		attrValue = attrValue.split(',');
-		for (var i = 0; i < attrValue.length; i++) { 
+		for (var i = 0; i < attrValue.length; i++) {
 		    var option = document.createElement("option");
 		    option.text = attrValue[i];
 		    option.value = i;

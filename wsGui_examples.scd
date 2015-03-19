@@ -138,6 +138,8 @@ k.addToPage
 d = WsImage.new(a, Rect(0.2, 0.2, 0.8, 0), "~/Desktop/soundWalkMarcin_fromJake sm.jpg".standardizePath); //0 for width or height will default to default image's w-h ratio
 d = WsImage.new(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
 d.path_("localFile");
+d.path_("/Library/Desktop Pictures/Earth Horizon.jpg");
+d.path_("/Library/Desktop Pictures/Foxtail Barley.jpg");
 d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
 d.action_({|val| "image is clickable!".postln});
 d.remove

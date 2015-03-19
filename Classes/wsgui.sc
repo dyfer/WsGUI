@@ -20,7 +20,7 @@ WsWindow {
 	var <bodyID; //this will be id of the object referring to the body, when the background is first set;
 	var <titleID; //this will be id of the object referring to the title, when the background is first set;
 	var <curWidgetID = 0;
-	var thisWwwPath, <windowID; //for multiple windows
+	var <windowID; //for multiple windows
 	var styleKeys, numericOutputKinds;
 	var <wwwServerStartedFromWsWindow = false;
 
@@ -49,7 +49,7 @@ WsWindow {
 		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting).init(wwwPort);
 	}
 
-	*addToShutdown {
+	*addToShutdown { //this works fine, but does not clear files, as that's triggered when python programfinishes and by that time SC is not running
 		if(functionAddedToShutdown.not, {
 			ShutDown.objects = ShutDown.objects.add({WsWindow.freeAll});
 			functionAddedToShutdown = true;
@@ -211,6 +211,7 @@ WsWindow {
 			oscPath = oscRootPath ++ "/" ++ wsPort.asString;
 			"oscPath: ".post; oscPath.postln;
 			this.startBridge; //to give time
+			// guiObjects[titleID][0][\title] = title;//workaround so it's available right away
 			{this.title_(title)}.defer(1); //awful hack for now to solve possible timing problems
 		});
 	}
@@ -716,7 +717,7 @@ WsWindow {
 		var cmd, relativeImgPath;
 		// relativeImgPath = "images/" ++ id.asString; //to not have to deal with removing the directory afterwards...
 		relativeImgPath = id.asString;
-		cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
+		cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
 		"Creating symlink: ".post;
 		// cmd.postln;
 		cmd.systemCmd; //synchronously, so we have the link on time
@@ -820,7 +821,7 @@ WsWindow {
 		if(titleID.notNil, {
 			^guiObjects[titleID][0][\title];
 		}, {
-			^nil;
+			^title;
 		});
 	}
 
@@ -1085,6 +1086,7 @@ WsWidget {
 	}
 
 	string_ {|thisString|
+		thisString ?? {thisString = ""; "thisString was nil".warn};
 		thisString = thisString.replace("\n", "<br>");//convert newline for html
 		thisString = thisString.replace("\t", "&nbsp;&nbsp;&nbsp;");//convert newline for html
  		if(ws.guiObjects[id][0][\innerHTML].isNil, {
