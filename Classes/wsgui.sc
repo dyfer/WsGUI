@@ -199,16 +199,18 @@ WsWindow {
 
 			//path
 			wwwPath = globalWwwPath ++ "/" ++ windowID.asString;
-			this.addSubdirectory;
+			// this.addSubdirectory; //moved to OSC responder
 			if(isDefault, {
 				this.isDefault_(isDefault)
 			});
 			// this.setDefaultRedirectionAddress; //now figure out the address
 
-			this.getPorts; //get next free port for websockets and udp communication
-			this.updateWsPortInFile(wsPort);
+			this.getPorts; //get next free port for osc communication
+			// this.updateWsPortInFile(wsPort); //moved to OSC responder
+
 			//important - create individual path for osc messages
-			oscPath = oscRootPath ++ "/" ++ wsPort.asString;
+			// oscPath = oscRootPath ++ "/" ++ wsPort.asString;
+			oscPath = oscRootPath ++ "/" ++ windowID.asString;
 			"oscPath: ".post; oscPath.postln;
 			this.startBridge; //to give time
 			// guiObjects[titleID][0][\title] = title;//workaround so it's available right away
@@ -303,7 +305,7 @@ WsWindow {
 	}	
 
 	getPorts {
-		wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger;
+		// wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger; moved to the responder!
 		wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
 	}
 
@@ -366,6 +368,14 @@ WsWindow {
 		cmd.systemCmd;
 		
 		//copy files
+		// copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
+		// // "Creading subdirectory, command: ".post; copyCmd.postln;
+		// copyCmd.systemCmd;
+	}
+
+	copyFiles {
+		var cmd, copyCmd;
+		//copy files
 		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
 		// "Creading subdirectory, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
@@ -393,7 +403,7 @@ WsWindow {
 	prPrepareGlobalResponders {
 		socketsResponder = OSCdef(oscPath, {|msg, time, addr, recvPort|
 			var command, hostport, data;
-			//command is either 'add', 'remove', or 'data'
+			//command is either 'add', 'remove', 'data' or 'wsport' (for initial websocket port setting)
 			#command, hostport, data= msg[[1, 2, 3]];
 			command = command.asSymbol;
 			hostport = hostport.asSymbol;
@@ -405,7 +415,14 @@ WsWindow {
 			command.switch(
 				\add, {this.addWsClient(hostport)},
 				\remove, {this.removeWsClient(hostport)},
-				\data, {this.interpretWsData(hostport, data)}
+				\data, {this.interpretWsData(hostport, data)},
+				\wsport, {
+					wsPort = hostport; //2nd argument
+					this.addSubdirectory;
+					this.updateWsPortInFile(wsPort); //moved to OSC responder
+					this.copyFiles;
+					"received ws port: ".post; wsPort.postln;
+				}
 			);
 		}, oscPath);
 	}

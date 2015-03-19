@@ -40,10 +40,10 @@ if sys.argv[3:]:
     OSC_ADDR = sys.argv[3] # OSC address path
 else:
     OSC_ADDR = '/sockets'
-if sys.argv[4:]:
-   WS_PORT = int(sys.argv[4]) # non-privileged port, must match the one in javascript file
-else:
-    WS_PORT = 9999
+# if sys.argv[4:]:
+   # WS_PORT = int(sys.argv[4]) # OBSOLETE, auto-selecting now; non-privileged port, must match the one in javascript file
+# else:
+    # WS_PORT = 9999
 
 OSC_IP = 'localhost'
 
@@ -51,14 +51,15 @@ print "Starting..."
 print "OSC_SEND:", OSC_SEND
 print "OSC_RECEIVE:", OSC_RECEIVE
 print "OSC_ADDR:", OSC_ADDR
-print "WS_PORT:", WS_PORT
+# print "WS_PORT:", WS_PORT
 
 print "preparing OSC client (sending)"
 oscClient = OSC.OSCClient()
 oscClient.connect( (OSC_IP, OSC_SEND) )
 
 print "preparing OSC server"
-osc_server = OSC.ThreadingOSCServer(("localhost", OSC_RECEIVE))
+# osc_server = OSC.ThreadingOSCServer(("localhost", OSC_RECEIVE))
+osc_server = OSC.ThreadingOSCServer(("127.0.0.1", OSC_RECEIVE))
 # osc_server = OSC.ForkingOSCServer(("localhost", OSC_RECEIVE))
 
 
@@ -79,7 +80,7 @@ class WsOscBridge(WebSocket):
     def handleMessage(self):
         if self.data is None:
 			self.data = ''
-        # print "Received from websocket: " + self.data
+        print "Received from websocket: " + self.data
         this_addr_as_string_no_slash = self.address[0] + ':' + str(self.address[1]);
         oscMsg = OSC.OSCMessage()
         oscMsg.setAddress(OSC_ADDR)
@@ -99,13 +100,14 @@ class WsOscBridge(WebSocket):
             # print ("msg: " + str(msg));
             this_handler.sendMessage(msg)
         osc_server.addMsgHandler(this_addr_as_string,  osc_to_send_callback )
-        print 'Added osc handler ' + this_addr_as_string;
+        # print 'Added osc handler ' + this_addr_as_string;
         this_addr_as_string_no_slash = self.address[0] + ':' + str(self.address[1]);
         oscMsg = OSC.OSCMessage()
         oscMsg.setAddress(OSC_ADDR)
         oscMsg.append('add')
         oscMsg.append(this_addr_as_string_no_slash);
         oscClient.send(oscMsg)
+        # print 'OSC message sent: ' + oscMsg;
 
     def handleClose(self):
         print self.address, 'closed'
@@ -119,7 +121,20 @@ class WsOscBridge(WebSocket):
         oscClient.send(oscMsg)
 
 
-ws_server = SimpleWebSocketServer("0.0.0.0", WS_PORT, WsOscBridge)
+# ws_server = SimpleWebSocketServer("0.0.0.0", WS_PORT, WsOscBridge)
+ws_server = SimpleWebSocketServer("0.0.0.0", 0, WsOscBridge)
+# print ws_server.serversocket.getsockname()[1];
+
+#get assigned port numer
+WS_PORT = ws_server.serversocket.getsockname()[1]
+print "WS_PORT:", WS_PORT;
+#send through OSC:
+oscMsg = OSC.OSCMessage()
+oscMsg.setAddress(OSC_ADDR)
+oscMsg.append('wsport')        
+oscMsg.append(WS_PORT);
+oscClient.send(oscMsg)
+
 
 def start_ws():
     ws_server.serveforever()
@@ -134,8 +149,9 @@ def start_servers():
 
 def stop_servers():
     print 'stopping ws and osc servers...'
-    ws_server.close();
     osc_server.close();
+    ws_server.close();
+    # ws_server.shutdown();
 
 if __name__ == "__main__":
 
