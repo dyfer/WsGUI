@@ -133,6 +133,24 @@ k.remove
 k = WsSlider.init(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
 k.addToPage
 
+//input text box
+l = WsInput.new(a, Rect(0.5, 0.3, 0.1, 0.05)); //no styling currently available
+//add EZSlider with control spec;
+l.value_("blah")
+l.value_(0.7)
+l.value
+l.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
+l.action = nil
+l.textColor_(Color.red)
+l.backgroundColor_(Color.black)
+l.font_(Font.new(\Georgia).size_(16))
+l.font_(Font.new(size: 16))
+l.remove
+l.bounds_(Rect(0.5, 0.3, 0.2, 0.1))
+OSCFunc.trace(false)
+nil
+"sdosds".postln;
+
 //image
 //image can be placed anywhere; internally a symlink is created for each image
 d = WsImage.new(a, Rect(0.2, 0.2, 0.8, 0), "~/Desktop/soundWalkMarcin_fromJake sm.jpg".standardizePath); //0 for width or height will default to default image's w-h ratio

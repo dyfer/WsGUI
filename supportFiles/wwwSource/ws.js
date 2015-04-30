@@ -191,6 +191,13 @@ var addWidget = function(id, params) {
 	thisWidget.oninput = function(){ws.send([id, thisWidget.value])};
 	//sending commands here
 	break;
+    case "input":
+	thisWidget = document.createElement('input');
+	thisWidget.setAttribute('type', 'text');
+	// thisWidget.onclick = function(){ws.send([id, thisWidget.value])}; //not sure if we want it
+	thisWidget.oninput = function(){ws.send([id, thisWidget.value])};
+	//sending commands here
+	break;
     case "image":
 	thisWidget = document.createElement('img');
 	// thisWidget.onclick = function(){ws.send([id, 0])};

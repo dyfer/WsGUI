@@ -92,7 +92,7 @@ class WsOscBridge(WebSocket):
     def handleMessage(self):
         if self.data is None:
 			self.data = ''
-        print "Received from websocket: " + self.data
+        # print "Received from websocket: " + self.data
         this_addr_as_string_no_slash = self.address[0] + ':' + str(self.address[1]);
         oscMsg = OSC.OSCMessage()
         oscMsg.setAddress(OSC_ADDR)

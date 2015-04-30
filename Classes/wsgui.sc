@@ -1026,6 +1026,7 @@ WsWidget {
 	bounds_ { |boundsRect|
 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
 		ws.guiObjects[id][0][\bounds] = bounds;
+		ws.updateWidget(id, \bounds);
 	}
 
 	action_ {|function|
@@ -1265,6 +1266,72 @@ WsSlider : WsWidget {
 		this.value_(val);
 		this.action.();
 		^val;
+	}
+}
+
+WsInput : WsWidget {
+
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \input, sendNow: true);
+	}
+
+	// doesn't send to page, just inits the object
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \input, sendNow: false);
+	}
+
+	value_ {|val|
+		ws.guiObjects[id][0][\value] = val;
+		ws.updateWidget(id, \value);
+	}
+
+	value {
+		^ws.guiObjects[id][0][\value];
+	}
+
+	valueAction_ {|val|
+		this.value_(val);
+		this.action.();
+		^val;
+	}
+
+	font_ {|font|
+		if(ws.guiObjects[id][0][\font].isNil, {
+			ws.guiObjects[id][0].put(\font, font);
+		}, {
+			ws.guiObjects[id][0][\font] = font;
+		});
+		ws.updateWidget(id, \textColor);
+	}
+
+	font {
+		^ws.guiObjects[id][0][\font];
+	}
+
+	backgroundColor_ {|color|
+		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+			ws.guiObjects[id][0].put(\backgroundColor, color);
+		}, {
+			ws.guiObjects[id][0][\backgroundColor] = color;
+		});
+		ws.updateWidget(id, \backgroundColor);
+	}
+
+	backgroundColor {
+		^ws.guiObjects[id][0][\backgroundColor];
+	}
+
+	textColor_ {|color|
+		if(ws.guiObjects[id][0][\textColor].isNil, {
+			ws.guiObjects[id][0].put(\textColor, color);
+		}, {
+			ws.guiObjects[id][0][\textColor] = color;
+		});
+		ws.updateWidget(id, \textColor);
+	}
+
+	textColor {
+		^ws.guiObjects[id][0][\textColor];
 	}
 }
 
