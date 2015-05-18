@@ -191,9 +191,9 @@ f.remove
 g = WsCheckbox.new(a, Rect(0.0, 0, 0.2, 0.2)); //checkbox; not resizable due to browser restrictions. Eventually this might change but requires more work with CSS
 g.value_(1)
 g.value
-g.value_(0)
+g.value_(false)
 g.value
-g.action_({|cb| "check: ".post; cb.value.postln;}) //wsCheckbox passed; val 0/1
+g.action_({|cb| "check: ".post; cb.value.class.postln;}) //wsCheckbox passed; val 0/1
 g.remove
 
 g = WsCheckbox.init(a, Rect(0.0, 0, 0.2, 0.2)); //checkbox; not resizable due to browser restrictions. Eventually this might change but requires more work with CSS
