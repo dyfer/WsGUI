@@ -197,19 +197,43 @@ EXAMPLES::
 code::
 a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
-"http://localhost:8000".openOS
+"http://localhost:8000".openOS;
 
 NetAddr.myIP; //from NetLib; useful for connecting external clients
 
-//background and a title
-a.backgroundColor_(Color.blue)
-a.backgroundColor_(Color.green)
-a.title_("#home")
+//background and title
+a.backgroundColor_(Color.blue);
+a.backgroundColor_(Color.green);
+a.title_("different title");
 
 //finishing
 a.clear //remove all elements, don't close server (can add new elements)
 a.free //close ws server
 
-//freeAll - close all windows/servers
+// Multiple windows
+
+WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWindow; for multiple windows manual creation/freeing is advisable to avoid problems
+WsWindow.wwwPid; //check PID
+
+a = WsWindow.new("new title", false); //when no port is specified, no www server will be started, nor one will be stopped when freeing this
+o = WsWindow.new("different title", false); //second window
+//now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+"http://localhost:8000".openOS;
+
+a.backgroundColor_(Color.blue); //first window
+o.backgroundColor_(Color.green); //second win
+
+
+a.isDefault_(true);//set default
+"http://localhost:8000".openOS; //try again
+
+//free both windows
+a.free;
+o.free;
+
+WsWindow.stopWwwServer; //stop static server when you're done
+WsWindow.wwwPid; //check - should be nil now
+
+//alternative - freeAll: close all windows/servers
 WsWindow.freeAll; //use that instead of killPython
 ::

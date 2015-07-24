@@ -7,7 +7,6 @@ var checking;
 var ws;
 var documentID;
 
-// this is not working as expected... since opened browser window will block static port when used
 function checkWwwConnection(){
     var req = new XMLHttpRequest();
     req.onload = function(){
@@ -26,13 +25,15 @@ function checkWwwConnection(){
     console.log("checking connection")
     isChecking = true;
     // var url = document.location;
-    // req.open('GET', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), false); //checking for server connection with a timestamp
     var url = document.location + "ws.js"; //check for the ws.js file (this file) existence
-    req.open('GET', url += ((/\?/).test(url) ? "&" : "?"), false); //checking for server connection with a timestamp
-    req.send();
-    // try {
-	// req.send(null);
-    // } catch (ex) {
+    req.open('GET', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), false); //checking for server connection with a timestamp
+    // req.open('GET', url += ((/\?/).test(url) ? "&" : "?"), false); //checking for server connection with a timestamp
+    // req.open('GET', url, false); //checking wether file exists
+    // req.send();
+    try {
+	req.send();
+    } catch (ex) {
+    }
 
 
 

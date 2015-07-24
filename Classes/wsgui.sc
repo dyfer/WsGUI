@@ -49,7 +49,7 @@ WsWindow {
 		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting).init(wwwPort);
 	}
 
-	*addToShutdown { //this works fine, but does not clear files, as that's triggered when python programfinishes and by that time SC is not running
+	*addToShutdown {
 		if(functionAddedToShutdown.not, {
 			ShutDown.objects = ShutDown.objects.add({WsWindow.freeAll});
 			functionAddedToShutdown = true;
@@ -81,7 +81,7 @@ WsWindow {
 		if(wwwPid.isNil, {
 			// if(this.checkWwwPort, {
 			wwwPid = cmd.unixCmd({
-				"Python www server stopped!".postln;
+				"Python static www server stopped!".postln;
 				wwwPid = nil;
 				// this.killWS;
 			}, postOutput: suppressPosting.not);
@@ -109,7 +109,11 @@ WsWindow {
 	}
 
 	*freeAll {
-		this.allWsWindows.do(_.free);
+		// this.allWsWindows.do(_.free); //this doesn't always free all instances! Bug? or is it because the dictionary is beinng modified while iterated over?
+		WsWindow.allWsWindows.keys.do({|thisKey|
+			// WsWindow.allWsWindows[thisKey].title.postln;
+			WsWindow.allWsWindows[thisKey].free;
+		});
 		this.stopWwwServer;
 	}
 
@@ -218,7 +222,7 @@ WsWindow {
 		});
 	}
 
-	updateWsPortInFile {arg port = 8000;
+	updateWsPortInFile {arg port = 80000;
 		var path = wwwPath; //www path
 		var filename = jsFilename;
 		var fileContentsArray, filePath;
@@ -311,11 +315,13 @@ WsWindow {
 
 	startBridge {
 		var cmd;
+		this.prPrepareGlobalResponders; //first, so we're ready
 		//starting python socket bridge
 		//usage: python ws_osc.py SC_OSC_port, ws_OSC_port, oscPath, ws_port
 		cmd = "exec" + pythonPath + "-u" + bridgePath + NetAddr.langPort + wsOscPort + oscPath + wsPort; //-u makes posting possible (makes stdout unbuffered)
+		"websocket server cmd: ".post; cmd.postln;
 		wsPid = cmd.unixCmd({|code, exPid|
-			("Bridge stopped, exit code: " ++ code ++ "; cleaning up").postln;
+			("WebSocket server stopped, exit code: " ++ code ++ "; cleaning up").postln;
 			wsPid = nil;
 			// this.killWWW;
 			//stop www server only if it was started with this window instance:
@@ -324,10 +330,10 @@ WsWindow {
 				// for future - check if there are no other WsWindows using the server...
 				WsWindow.stopWwwServer;
 			});
-			this.prCleanup;
+			// this.prCleanup; //should be done first using .free
 		}, suppressPosting.not);
 
-		this.prPrepareGlobalResponders; //needs to be done after starting node, so node doesn't end up binding to osc receive port
+		// this.prPrepareGlobalResponders; //needs to be done after starting node, so node doesn't end up binding to osc receive port
 
 		//prepare send port
 		// scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
@@ -376,16 +382,20 @@ WsWindow {
 	copyFiles {
 		var cmd, copyCmd;
 		//copy files
-		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
-		// "Creading subdirectory, command: ".post; copyCmd.postln;
+		// copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
+		copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks instead
+		// "Copying files, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
 	}
 
 	removeSubdirectory {
-		var rmFilesCmd, rmDirCmd;
+		var rmFilesCmd, rmDirCmd, rmWsJs;
 		//remove all files - or just known files?
 		//all for now
 		"Removing files and subdirectory".postln;
+
+		//remove ws.js first to avoid possibility of reconnecting on close - WIP
+		// rmWsJs
 
 		//rmFilesCmd
 		rmFilesCmd = "rm " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*").escapeChar($ );
@@ -556,6 +566,9 @@ WsWindow {
 	// }
 
 	free {
+		"Freeing WsWindow titled ".post; title.postln;
+		this.prCleanup;// clean up directories first
+		// scSendNetAddr.dump;
 		scSendNetAddr.sendMsg("/quit");
 		{this.killWS}.defer(0.4); //if bridge won't close, this will kill it; also waits for any outstanding connections
 		// this.prCleanup; //this will get called when ws bridge exits

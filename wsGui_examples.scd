@@ -25,13 +25,33 @@ WsWindow.freeAll; //use that instead of killPython
 WsWindow.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
 
 /*USE ONLY IN THE LAST RESORT*/ WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without closing/freeing); in most cases WsWindow.closeAll should be enough
-NetAddr.myIP; //useful for connecting external clients
+NetAddr.myIP; //from NetLib; useful for connecting external clients
 
 
 //background and a title
 a.backgroundColor_(Color.blue)
 a.backgroundColor_(Color.green)
 a.title_("new title")
+
+// MULTIPLE WINDOWS
+
+WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWindow; for multiple windows manual creation/freeing is advisable to avoid problems
+WsWindow.stopWwwServer
+WsWindow.wwwPid;
+
+a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to 
+a.free
+//now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+
+o = WsWindow.new("different title", false); //second win!
+o.free
+
+
+a.isDefault_(false);//unset default
+
+
+a.backgroundColor_(Color.blue);
+o.backgroundColor_(Color.green); //second win
 
 //button - simple
 b = WsSimpleButton.new(a, Rect(0.5, 0, 0.2, 0.05)); //button with one "state"
