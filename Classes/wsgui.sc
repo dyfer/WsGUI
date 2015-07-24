@@ -1,7 +1,7 @@
 /*
 This software was developed with the support of the Center for Digital Arts and Experimental Media (DXARTS), University of Washington (www.dxarts.washington.edu)
 
-Created by Marcin Pączkowski and Michael McCrea 
+Created by Marcin Pączkowski and Michael McCrea
 */
 
 //Marcin - note to self: freeing should be called close, as for a window; if port was passed then check if there are any remaining WsWindows and close www server with the last one (???)
@@ -27,7 +27,7 @@ WsWindow {
 	classvar <>pythonPath, <>bridgePath, <>staticServerPath, <>checkPortPath, <classPath, <classDir; //set in init...
 	// classvar <>jsFilePath = "www/ws.js";
 	classvar oscRootPath = "/sockets";
-	classvar currentWindowID; 
+	classvar currentWindowID;
 	classvar <>globalWwwPath = "www"; //relative to class
 	classvar <>jsFilename = "wsport.js"; //relative to class
 	classvar <>discMsgFile = "discMessage.js";
@@ -38,7 +38,7 @@ WsWindow {
 	classvar <redirectionAddrFile = "whereto.js";
 	classvar <redirectionHtmlFile = "index.html";
 	classvar functionAddedToShutdown = false;
-	// classvar <sourceFiles = 
+	// classvar <sourceFiles =
 
 	// *new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
 	// 	oscPath = "/sockets", actionOnClose, suppressPosting = false|
@@ -169,7 +169,7 @@ WsWindow {
 			Error("WsWindow with name \"" ++ title ++ "\" already exists. Please use other title or remove existing WsWindow").throw;
 		}, {
 			allWsWindows[windowID] = this;
-			
+
 			actionOnClose ?? {actionOnClose = {}};
 			WsWindow.setClassVars;
 			WsWindow.addToShutdown;
@@ -277,8 +277,8 @@ WsWindow {
 		// "copying index.html, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
 	}
-	
-	unsetAsDefalt{
+
+	unsetAsDefault{
 		var rm1cmd, rm2cmd;
 		//remove both files
 		"Removing files for redirection".postln;
@@ -297,12 +297,12 @@ WsWindow {
 				if(thisWindow.windowID != windowID, {
 					thisWindow.isDefault = false;
 				});
-			});		
+			});
 			this.setAsDefault;
 		}, {
-			this.unsetAsDefalt;
+			this.unsetAsDefault;
 		});
-	}	
+	}
 
 	getPorts { //moved to prPrepareGlobalResponders
 		// wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger; moved to the responder!
@@ -366,7 +366,7 @@ WsWindow {
 		cmd = "mkdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
 		// "Creading subdirectory, command: ".post; cmd.postln;
 		cmd.systemCmd;
-		
+
 		//copy files
 		// copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
 		// // "Creading subdirectory, command: ".post; copyCmd.postln;
@@ -386,17 +386,17 @@ WsWindow {
 		//remove all files - or just known files?
 		//all for now
 		"Removing files and subdirectory".postln;
-				
+
 		//rmFilesCmd
 		rmFilesCmd = "rm " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*").escapeChar($ );
 		// "Removing files from current directory, command: ".post; rmFilesCmd.postln;
 		rmFilesCmd.systemCmd;
-		
+
 		//rmDirCmd
 		rmDirCmd = "rmdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
 		// "Removing subdirectory, command: ".post; rmDirCmd.postln;
 		rmDirCmd.systemCmd;
-		
+
 		//remove directory
 	}
 
@@ -559,6 +559,10 @@ WsWindow {
 		scSendNetAddr.sendMsg("/quit");
 		{this.killWS}.defer(0.4); //if bridge won't close, this will kill it; also waits for any outstanding connections
 		// this.prCleanup; //this will get called when ws bridge exits
+	}
+
+	close {
+		^this.free;
 	}
 
 	prCleanup {

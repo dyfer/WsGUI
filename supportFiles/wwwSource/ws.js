@@ -153,34 +153,39 @@ var addWidget = function(id, params) {
 	// thisWidget.setAttribute('type', 'button');
 	thisWidget = document.createElement('button');
 	var isPressed = false; //to avoid multiple clicks on mousedown ontouchstart
+	var isTouchScreen = false; //set device type depending on first input... is this a good workaround?
 
- 	thisWidget.onclick = function(){ws.send([id, 0])}; //simpler for now, compatible with all devices
+ 	// thisWidget.onclick = function(){ws.send([id, 0])}; //simpler for now, compatible with all devices
 
 	//following bevavior needs revisiting!!!!
 
-	// thisWidget.ontouchstart = function(){
-	//     if(!isPressed) {
-	// 	ws.send([id, 1]);
-	// 	isPressed = true;
-	//     }
-	// };
-	// thisWidget.onmousedown = function(){
-	//     if(!isPressed) {
-	// 	ws.send([id, 1]);
-	// 	isPressed = true;
-	//     }
-	// };
+	thisWidget.ontouchstart = function(){ //touch is much faster on touchscreen than onmousedown
+	    isTouchScreen = true;
+	    // if(!isPressed) {
+		// ws.send([id, 1]);
+		// isPressed = true;
+		ws.send([id, 0]);
+	    // }
+	};
+	thisWidget.onmousedown = function(){
+	    // if(!isPressed) {
+	    if(!isTouchScreen) { //blocks secondary clicks from touchscreen devices
+		// ws.send([id, 1]);
+		// isPressed = true;
+		ws.send([id, 0]);
+	    }
+	};
 	// thisWidget.ontouchend = function(){
-	//     if(isPressed) {
-	// 	ws.send([id, 0]);
+	//     // if(isPressed) {
+	// 	// ws.send([id, 0]);
 	// 	isPressed = false;
-	//     }
+	//     // }
 	// };
 	// thisWidget.onmouseup = function(){
-	//     if(isPressed) {
-	// 	ws.send([id, 0]);
+	//     // if(isPressed) {
+	// 	// ws.send([id, 0]);
 	// 	isPressed = false;
-	//     }
+	//     // }
 	// };
 	// console.log("in case: ", thisWidget);
 	break;

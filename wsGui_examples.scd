@@ -12,6 +12,7 @@
 a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+"http://localhost:8000".openOS
 
 //finishing
 a.clear //remove all elements, don't close server (can add new elements)
