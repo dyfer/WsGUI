@@ -280,6 +280,8 @@ WsWindow {
 		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ globalWwwPath).escapeChar($ );
 		// "copying index.html, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
+
+		isDefault = true; //set the var
 	}
 
 	unsetAsDefault{
@@ -292,6 +294,8 @@ WsWindow {
 		rm2cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile).escapeChar($ );
 		// "rm2cmd: ".post; rm2cmd.postln;
 		rm2cmd.systemCmd;
+
+		isDefault = false; //set the var
 	}
 
 	isDefault_ {|val = false|
@@ -583,6 +587,7 @@ WsWindow {
 		socketsResponder.free;
 		// this.removeAllImageLinks; //clean images - not needed when removing whole directory
 		this.removeSubdirectory;
+		"isDefault: ".post; isDefault.postln;
 		if(isDefault, {
 			this.isDefault_(false);
 		});
