@@ -221,8 +221,7 @@ o = WsWindow.new("different title", false); //second window
 "http://localhost:8000".openOS;
 
 a.backgroundColor_(Color.blue); //first window
-o.backgroundColor_(Color.green); //second win
-
+o.backgroundColor_(Color.green); //second window
 
 a.isDefault_(true);//set default
 "http://localhost:8000".openOS; //try again
