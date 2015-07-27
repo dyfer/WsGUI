@@ -4,10 +4,8 @@ This software was developed with the support of the Center for Digital Arts and 
 Created by Marcin Pączkowski and Michael McCrea
 */
 
-//Marcin - note to self: freeing should be called close, as for a window; if port was passed then check if there are any remaining WsWindows and close www server with the last one (???)
-
 WsWindow {
-	var title, <isDefault, <>actionOnClose, suppressPosting;
+	var title, <isDefault, <>actionOnClose, suppressPosting, <useNexus;
 	var <wsPid, <oscPath;//, <wwwPipe;
 	var <wsPort, <wsOscPort; //chosen automatically
 	var <wwwPath;
@@ -45,8 +43,8 @@ WsWindow {
 	// 	^super.newCopyArgs(wwwPort, // wsPort, wsOscPort,
 	// 		oscPath, actionOnClose, suppressPosting).init;
 	// }
-	*new {|title, isDefault = true, wwwPort, actionOnClose, suppressPosting = false|
-		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting).init(wwwPort);
+	*new {|title, isDefault = true, wwwPort, actionOnClose, suppressPosting = false, useNexus = false|
+		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting, useNexus).init(wwwPort);
 	}
 
 	*addToShutdown {
@@ -765,7 +763,7 @@ WsWindow {
 		relativeImgPath = id.asString;
 		cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
 		"Creating symlink: ".post;
-		// cmd.postln;
+		cmd.postln;
 		cmd.systemCmd; //synchronously, so we have the link on time
 		^relativeImgPath;
 	}
@@ -1233,29 +1231,31 @@ WsStaticText : WsWidget {
 WsImage : WsWidget {
 	var <path;
 
-	*new {|wsWindow, bounds, path|
-		^super.new.add(wsWindow, bounds, \image, sendNow: true).addPath(path);
+	*new {|wsWindow, bounds, path, isURL = false|
+		^super.new.add(wsWindow, bounds, \image, sendNow: true).path_(path, isURL);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsWindow, bounds, path|
-		^super.new.add(wsWindow, bounds, \image, sendNow: false).addPath(path);
+	*init { |wsWindow, bounds, path, isURL = false|
+		^super.new.add(wsWindow, bounds, \image, sendNow: false).path_(path, isURL);
 	}
 
-	addPath { |path|
-		path !? { ws.guiObjects[id][0].put(\src, path) };
-	}
+	// addPath { |path|
+	// 	path !? { ws.guiObjects[id][0].put(\src, path) };
+	// }
 
 	path_ {|newPath, isURL = false|
 		var relPath;
-		path = newPath;
-		if(isURL, {
-			relPath = newPath;
-		}, {
-			relPath = ws.createImageLink(newPath, id);
+		if(newPath.notNil, {
+			path = newPath;
+			if(isURL, {
+				relPath = newPath;
+			}, {
+				relPath = ws.createImageLink(newPath, id);
+			});
+			ws.guiObjects[id][0].put(\src, relPath);
+			ws.updateWidget(id, \src);
 		});
-		ws.guiObjects[id][0].put(\src, relPath);
-		ws.updateWidget(id, \src);
 	}
 }
 

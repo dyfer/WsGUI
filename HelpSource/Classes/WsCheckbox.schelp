@@ -1,0 +1,66 @@
+TITLE:: WsCheckbox
+summary:: A WsGUI checkbox widget.
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+
+DESCRIPTION::
+This widget displays a checkbox that can be checked/unchecked.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new instance and add it to the window immediately.
+
+METHOD:: init
+Create new instance without adding it to the window. Use this when using WsLayout.
+
+ARGUMENT:: wsWindow
+An instance of code::WsWindow::
+
+ARGUMENT:: bounds
+A code::Rect:: specifying the size of the widget.
+note::Currently a relative measurement is used: 1 for full window width, 1 for full window height, e.g. code::Rect(0, 0, 1, 1):: would occupy whole window.::
+
+returns:: an instance of the widget
+
+
+INSTANCEMETHODS::
+
+METHOD:: value
+Sets the current state. strong::Does not:: trigger the action.
+ARGUMENT:: val
+An integer setting the state number (0/1).
+
+METHOD:: valueAction
+Sets the current state and triggers the action.
+ARGUMENT:: val
+An integer setting the state number (0/1).
+
+
+EXAMPLES::
+
+code::
+a = WsWindow.new("new title", true, 8000);//start the window
+"http://localhost:8000".openOS; //open in a browser
+
+g = WsCheckbox.new(a, Rect(0.0, 0, 0.2, 0.2)); //checkbox; not resizable due to browser restrictions. Eventually this might change but requires more work with CSS
+g.value_(1);
+g.value;
+g.value_(0);
+g.value;
+g.action_({|cb| "check: ".post; cb.value.postln;}); //wsCheckbox passed; val 0/1
+g.remove;
+
+//or send later
+g = WsCheckbox.init(a, Rect(0.0, 0, 0.2, 0.2)); //checkbox; not resizable due to browser restrictions. Eventually this might change but requires more work with CSS
+g.value_(1);
+g.addToPage;
+g.value;
+g.value_(0);
+g.valueAction_(1);
+g.action_({|cb| "checker: ".post; cb.value.postln;}); //wsCheckbox passed; val 0/1
+g.remove;
+
+a.free;
+::

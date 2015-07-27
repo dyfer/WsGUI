@@ -1,0 +1,62 @@
+TITLE:: WsSimpleButton
+summary:: A single-state button for WsGUI
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+
+DESCRIPTION::
+A single-state button for WsGUI
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new instance and add it to the window immediately.
+
+METHOD:: init
+Create new instance without adding it to the window. Use this when using WsLayout.
+
+ARGUMENT:: wsWindow
+An instance of code::WsWindow::
+
+ARGUMENT:: bounds
+A code::Rect:: specifying the size of the widget.
+note::Currently a relative measurement is used: 1 for full window width, 1 for full window height, e.g. code::Rect(0, 0, 1, 1):: would occupy whole window.::
+
+returns:: an instance of the widget
+
+
+INSTANCEMETHODS::
+
+
+EXAMPLES::
+
+code::
+a = WsWindow.new("new title", true, 8000);//start the window
+"http://localhost:8000".openOS; //open in a browser
+
+//button - simple
+b = WsSimpleButton.new(a, Rect(0.5, 0, 0.2, 0.05)); //button with one "state"
+b.string_("string");
+b.font_(Font.new(\Georgia).size_(24));
+b.backgroundColor_(Color.green);
+b.textColor_(Color.red);
+b.action_({"bu1".postln}); //just a function
+b.remove;
+
+//init only, send to page later
+b = WsSimpleButton.init(a, nil); // no bounds specified
+b.string_("string");
+b.font_(Font.new(\Georgia).size_(24));
+b.bounds_(Rect(0.3, 0.9, 0.5, 0.05)); // bounds still settable before sending to the page
+b.bounds;
+b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)); // bounds still settable before sending to the page
+b.bounds;
+// now send
+b.addToPage;
+b.backgroundColor_(Color.green);
+b.textColor_(Color.red);
+b.action_({"bu1".postln}); //just a function
+b.remove;
+
+a.free;
+::

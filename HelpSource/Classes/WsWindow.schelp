@@ -1,7 +1,7 @@
 TITLE:: WsWindow
 summary:: WebSocket-based GUI for SuperCollider.
-categories:: GUI
-related:: Classes/SomeRelatedClass, Reference/SomeRelatedStuff
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWidget, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
 
 DESCRIPTION::
 WsWindow is a representation of a single browser window for drawing GUI elements. This can be accessed locally and over the network. WsWindow and WsWidgets aims to be interchangeable with SC's GUI classes, however full interchangeability is not likely to be achieved.
