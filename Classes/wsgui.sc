@@ -283,34 +283,8 @@ WsWindow {
 		// "copying index.html, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
 
-<<<<<<< HEAD
-		pythonPath ?? {pythonPath = "python"};
-		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
-		bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
-		checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
-
-		//init vars
-		guiObjects = IdentityDictionary.new(know: true);
-		clientDict = IdentityDictionary.new(know: true);
-		namesToIDs = IdentityDictionary.new(know: true);
-		styleKeys = [\bounds, \color, \backgroundColor, \textColor, \font, \textAlign, \css]; //this are all symbols that should not be intepreted as object parameters, but rather as stylig (CSS) elements; custom css string can be added under \css key
-		numericOutputKinds = [\slider, \checkbox];
-
-		//check static server, start if port is available
-		wwwPort !? {
-			if(this.checkStaticPort, {
-				this.startStaticServer(wwwPort)
-			}, {
-				Error("WsGUI: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
-			})
-		};
-
-		this.getPorts; //get next free port for websockets and udp communication
-		WsGUI.updateWsPortInFile(wsPort);
-		this.startBridge; //to give time
-=======
 		isDefault = true; //set the var
->>>>>>> multipage
+ 
 	}
 
 	unsetAsDefault{
@@ -814,24 +788,23 @@ WsWindow {
 		relativeImgPath = id.asString;
 		cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
 		"Creating symlink: ".post;
-<<<<<<< HEAD
-
-		cmd.unixCmdGetStdOut; //synchronously, so we have the link on time
-		^relativeImgPath;
-	}
-
-	removeAllImageLinks {
-		var cmd;
-		cmd = "rm " ++ (classPath.dirname ++ "/www/images/*").escapeChar($ );
-		"Removing image links".postln;
-
-		cmd.unixCmd;
-	}
-=======
 		cmd.postln;
 		cmd.systemCmd; //synchronously, so we have the link on time
 		^relativeImgPath;
 	}
+
+// 	removeAllImageLinks {
+// 		var cmd;
+// 		cmd = "rm " ++ (classPath.dirname ++ "/www/images/*").escapeChar($ );
+// 		"Removing image links".postln;
+
+// 		cmd.unixCmd;
+// 	}
+// =======
+// 		cmd.postln;
+// 		cmd.systemCmd; //synchronously, so we have the link on time
+// 		^relativeImgPath;
+// 	}
 
 		//obsolete, all files are removed anyway
 	// removeAllImageLinks {
@@ -841,7 +814,7 @@ WsWindow {
 	// 	// cmd.postln;
 	// 	cmd.unixCmd;
 	// }
->>>>>>> multipage
+// >>>>>>> multipage
 
 	removeWidget {|idOrName|
 		var id;
@@ -1231,21 +1204,12 @@ WsSimpleButton : WsWidget {
 WsButton : WsWidget {
 	var <value = 0, <numStates = 0, <states;
 
-<<<<<<< HEAD
 	*new {|wsGUI, bounds|
 		^super.new.add(wsGUI, bounds, \button, sendNow: true).prInitAction;
 	}
 
 	*init {|wsGUI, bounds|
 		^super.new.add(wsGUI, bounds, \button, sendNow: false).prInitAction;
-=======
-	*new {|wsWindow, bounds|
-		^super.new.add(wsWindow, bounds, \button, sendNow: true);
-	}
-
-	*init {|wsWindow, bounds|
-		^super.new.add(wsWindow, bounds, \button, sendNow: false);
->>>>>>> multipage
 	}
 
 	// super.action_ overwrite to include incrementing the state counter in the function
