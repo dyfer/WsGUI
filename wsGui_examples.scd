@@ -9,25 +9,76 @@
 
 //WebSocket interface requires 2 "servers": one to serve static content (initial website, possibly images if used), another one to manage realtime communication (websockets). The former can be substituted for a built-in or another web server. It needs to be configured to serve the "www" folder inside this class' folder. Decoder machines will use their internal apache server, configured to point to that direction
 
+<<<<<<< HEAD
 a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a = WsGUI.new(8080); //specify port for using internal static web server; nil when serving www folder using another web server
 
+=======
+a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
+a.free
+>>>>>>> multipage
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+"http://localhost:8000".openOS
 
 //finishing
 a.clear //remove all elements, don't close server (can add new elements)
 a.free //close ws server
 
+//freeAll - close all windows/servers
+WsWindow.freeAll; //use that instead of killPython
+
 //tools
-WsGUI.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
-WsGUI.killPython //if something hangs... tough world; should not be necessary now, when we're checking for port availability on start
-NetAddr.myIP; //useful for connecting external clients
+WsWindow.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
+
+/*USE ONLY IN THE LAST RESORT*/ WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without closing/freeing); in most cases WsWindow.closeAll should be enough
+NetAddr.myIP; //from NetLib; useful for connecting external clients
 
 
 //background and a title
 a.backgroundColor_(Color.blue)
 a.backgroundColor_(Color.green)
 a.title_("new title")
+
+// MULTIPLE WINDOWS
+
+WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWindow; for multiple windows manual creation/freeing is advisable to avoid problems
+WsWindow.stopWwwServer
+WsWindow.wwwPid;
+
+a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to 
+a.free
+//now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+
+o = WsWindow.new("different title", false); //second win!
+o.free
+
+
+a.isDefault_(false);//unset default
+
+
+a.backgroundColor_(Color.blue);
+o.backgroundColor_(Color.green); //second win
+
+
+//alternative look - uses NexusUI
+a = WsWindow.new("new title", true, 8000, useNexus: true); //specify port for using internal static web server; nil when serving www folder using another web server
+a.free
+//now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+"http://localhost:8000".openOS
+
+e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
+//EZSlider with control spec;
+e.controlSpec_(\freq.asSpec) //only in EZSlider;
+e.bounds(Rect(0,0,100,100))
+e.value_(0)
+e.value
+e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
+e.valueAction_(2000);
+e.value
+e.remove
+
+//------------
+
 
 //button - simple
 b = WsSimpleButton.new(a, Rect(0.5, 0, 0.2, 0.05)); //button with one "state"
@@ -139,11 +190,31 @@ k.remove
 k = WsSlider.init(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
 k.addToPage
 
+//input text box
+l = WsInput.new(a, Rect(0.5, 0.3, 0.1, 0.05)); //no styling currently available
+//add EZSlider with control spec;
+l.value_("blah")
+l.value_(0.7)
+l.value
+l.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
+l.action = nil
+l.textColor_(Color.red)
+l.backgroundColor_(Color.black)
+l.font_(Font.new(\Georgia).size_(16))
+l.font_(Font.new(size: 16))
+l.remove
+l.bounds_(Rect(0.5, 0.3, 0.2, 0.1))
+OSCFunc.trace(false)
+nil
+"sdosds".postln;
+
 //image
 //image can be placed anywhere; internally a symlink is created for each image
 d = WsImage.new(a, Rect(0.2, 0.2, 0.8, 0), "~/Desktop/soundWalkMarcin_fromJake sm.jpg".standardizePath); //0 for width or height will default to default image's w-h ratio
 d = WsImage.new(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
 d.path_("localFile");
+d.path_("/Library/Desktop Pictures/Earth Horizon.jpg");
+d.path_("/Library/Desktop Pictures/Foxtail Barley.jpg");
 d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
 d.action_({|val| "image is clickable!".postln});
 d.remove
@@ -210,8 +281,8 @@ a.free
 
 // LAYOUTS
 
-WsGUI.killPython // if needed
-a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
+// WsGUI.killPython // if needed... shouldn't be.
+a = WsWindow.new("title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
 
 //init only, send to page later
@@ -359,6 +430,60 @@ a.layout_( WsHLayout( Rect(0.025,0.55,0.95, 1/3),
 )
 
 
+
+
+
+
+// MULTIPLE WINDOWS
+
+WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWindow; for multiple windows manual creation/freeing is advisable to avoid problems
+WsWindow.stopWwwServer
+WsWindow.wwwPid;
+
+a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to 
+a.free
+//now point a web browser to http://localhost:8000 (or http://yourIP:8000)
+
+o = WsWindow.new("different title", false); //second win!
+o.free
+
+
+a.isDefault_(false);//unset default
+
+
+a.backgroundColor_(Color.blue);
+o.backgroundColor_(Color.green); //second win
+
+//init only, send to page later
+b = WsSimpleButton.init(a, nil); // no bounds specified
+b.string_("string")
+b.font_(Font.new(\Georgia).size_(24))
+b.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
+b.bounds
+b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
+b.bounds
+// now send
+b.addToPage
+b.backgroundColor_(Color.green);
+b.textColor_(Color.red);
+b.action_({"bu1".postln}) //just a function
+b.remove
+
+
+//init only, send to page later
+c = WsSimpleButton.init(o, nil); // no bounds specified
+c.string_("string on another win")
+c.font_(Font.new(\Georgia).size_(24))
+c.bounds_(Rect(0.3, 0.9, 0.5, 0.05)) // bounds still settable before sending to the page
+c.bounds
+c.bounds_(Rect(0.3, 0.05, 0.5, 0.5)) // bounds still settable before sending to the page
+c.bounds
+// now send
+c.addToPage
+c.backgroundColor_(Color.green);
+c.textColor_(Color.red);
+c.action_({"bu2".postln}) //just a function
+c.remove
 
 
 

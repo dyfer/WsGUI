@@ -1,0 +1,81 @@
+TITLE:: WsImage
+summary:: Widget displaying an image in WsGUI.
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+
+DESCRIPTION::
+Displays an image in WsWindow.
+
+This can be any image file supported by the web browser. It can be stored locally or on the network.
+
+Internally, local files are symlinked to current WsWindow's working directory, so they can be placed anywhere in the filesystem.
+
+note::Currently (2015.07) WsImage is not handling updating images after initialization properly.::
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new instance and add it to the window immediately.
+
+METHOD:: init
+Create new instance without adding it to the window. Use this when using WsLayout.
+
+ARGUMENT:: wsWindow
+An instance of code::WsWindow::
+
+ARGUMENT:: bounds
+A code::Rect:: specifying the size of the widget.
+note::code::0:: provided for width or height will preserve image's aspect ratio.::
+note::Currently a relative measurement is used: 1 for full window width, 1 for full window height, e.g. code::Rect(0, 0, 1, 1):: would occupy whole window.::
+
+ARGUMENT:: path
+Path to a file. Optional at initialization.
+
+ARGUMENT:: isURL
+When set to code::true::, path is treated as an URL (no symlink is created).
+
+returns:: an instance of the widget
+
+
+INSTANCEMETHODS::
+
+METHOD:: path
+Get/set the path to an image file.
+
+ARGUMENT:: newPath
+code::String:: representing path to a file or an URL (see below).
+
+ARGUMENT:: isURL
+When set to code::true::, path is treated as an URL (no symlink is created).
+
+returns:: current path
+
+PRIVATE:: addPath
+
+EXAMPLES::
+
+code::
+a = WsWindow.new("new title", true, 8000);//start the window
+"http://localhost:8000".openOS; //open in a browser
+
+//image
+//image can be placed anywhere; internally a symlink is created for each image
+d = WsImage.new(a, Rect(0.2, 0.2, 0.2, 0), "/Applications/SuperCollider/SuperCollider.app/Contents/Resources/HelpSource/images/icon.supercollider.png"); //0 for width or height will default to default image's w-h ratio
+d = WsImage.new(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
+d.path_("localFile");
+d.path_("/Applications/SuperCollider/SuperCollider.app/Contents/Resources/HelpSource/images/icon.supercollider.png")
+d.path_("/Library/Desktop Pictures/Earth Horizon.jpg");
+d.path_("/Library/Desktop Pictures/Foxtail Barley.jpg");
+d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
+d.action_({|val| "image is clickable!".postln});
+d.remove;
+
+d = WsImage.init(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
+d.path_("localFile");
+d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
+d.action_({|val| "image is clickable!".postln});
+d.addToPage;
+d.remove;
+
+a.free;
+::

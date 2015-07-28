@@ -1,0 +1,92 @@
+TITLE:: WsStaticText
+summary:: A WsGUI widget displaying non-editable text.
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+
+DESCRIPTION::
+A WsGUI widget displaying non-editable text.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new instance and add it to the window immediately.
+
+METHOD:: init
+Create new instance without adding it to the window. Use this when using WsLayout.
+
+ARGUMENT:: wsWindow
+An instance of code::WsWindow::
+
+ARGUMENT:: bounds
+A code::Rect:: specifying the size of the widget.
+note::Currently a relative measurement is used: 1 for full window width, 1 for full window height, e.g. code::Rect(0, 0, 1, 1):: would occupy whole window.::
+
+returns:: an instance of the widget
+
+
+INSTANCEMETHODS::
+
+METHOD:: action
+ARGUMENT:: function
+A function to be performed when the widget is interacted with. Function is being passed current value where applicable.
+returns:: Current function.
+
+METHOD:: background
+ARGUMENT:: color
+Background color of the widget. Should be an instance of a code::Color::.
+returns:: current color
+
+METHOD:: stringColor
+ARGUMENT:: color
+Text color of the button. Should be an instance of a code::Color::.
+returns:: current color
+
+METHOD:: string
+Get/set a text content for applicable widgets.
+ARGUMENT:: thisString
+A string to be set.
+returns:: current string
+
+METHOD:: align
+Change alignment of the text.
+ARGUMENT:: align
+Can be code::\left::, code::\right::, code::\center::, code::\justify::.
+returns:: Current alignment.
+
+METHOD:: font
+Change the font of the text for applicable widgets.
+ARGUMENT:: font
+An instance of code::Font::. Size and font face are supported.
+returns:: Current font.
+
+METHOD:: addToPage
+Add to window/page specified in *init.
+
+METHOD:: remove
+Removes the widget from the window.
+
+EXAMPLES::
+
+code::
+a = WsWindow.new("new title", true, 8000);//start the window
+"http://localhost:8000".openOS; //open in a browser
+
+//text, labels
+c = WsStaticText.new(a, Rect(0.5, 0.5, 0.2, 0.2));
+c.string_("My text with newline \nhere but also html <br> newline and and and and and and it also wraps long lines");
+c.font_(Font.new(\Courier).size_(16));
+c.backgroundColor_(Color.yellow); //change if you don't want the default transparent; setting transparency currently doesn't work
+c.backgroundColor_(Color.white);
+c.textColor_(Color.red);
+c.textAlign_(\justify);
+c.remove;
+
+//add later
+c = WsStaticText.init(a);
+c.string_("Some text");
+c.addToPage;
+c.remove;
+
+a.free;
+::

@@ -1,0 +1,124 @@
+TITLE:: WsButton
+summary:: A multi-state button for WsGUI
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+
+DESCRIPTION::
+A multi-state button for WsGUI.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new instance and add it to the window immediately.
+
+METHOD:: init
+Create new instance without adding it to the window. Use this when using WsLayout.
+
+ARGUMENT:: wsWindow
+An instance of code::WsWindow::
+
+ARGUMENT:: bounds
+A code::Rect:: specifying the size of the widget.
+note::Currently a relative measurement is used: 1 for full window width, 1 for full window height, e.g. code::Rect(0, 0, 1, 1):: would occupy whole window.::
+
+returns:: an instance of the widget
+
+
+INSTANCEMETHODS::
+
+PRIVATE:: numStates
+
+METHOD:: states
+An array of labels and colors defining the states of the button.
+ARGUMENT:: statesArray
+An code::Array:: of arrays of the form code::[ [String, strColor, bgColor] , .... ]::
+
+METHOD:: value
+Sets the current state. strong::Does not:: trigger the action.
+ARGUMENT:: val
+An integer setting the state number.
+
+METHOD:: valueAction
+Sets the current state and triggers the action.
+ARGUMENT:: val
+An integer setting the state number.
+
+PRIVATE:: prUpdateStringAndColors
+
+METHOD:: item
+returns:: Current state's text.
+
+
+METHOD:: action
+Gets or sets function to be evaluated when the button is pressed. Function is passed the number of the current state number.
+ARGUMENT:: function
+Any object to set as default action, usually a Function.
+
+METHOD:: string
+Get/set a text content for applicable widgets.
+ARGUMENT:: thisString
+A string to be set.
+returns:: current string
+
+METHOD:: align
+Change alignment of the text.
+ARGUMENT:: align
+Can be code::\left::, code::\right::, code::\center::, code::\justify::.
+returns:: Current alignment.
+
+METHOD:: font
+Change the font of the text for applicable widgets.
+ARGUMENT:: font
+An instance of code::Font::. Size and font face are supported.
+returns:: Current font.
+
+METHOD:: addToPage
+Add to window/page specified in *init.
+
+METHOD:: remove
+Removes the widget from the window.
+
+EXAMPLES::
+
+code::
+a = WsWindow.new("new title", true, 8000);//start the window
+"http://localhost:8000".openOS; //open in a browser
+
+//button - add to window immediately
+i = WsButton.new(a, Rect(0, 0, 0.2, 0.2)); //WsButton imitates SC style multistate button
+i.states_([
+	["zero", Color.black, Color.rand],
+	["one", Color.black, Color.rand],
+	["two", Color.black, Color.rand]
+]);
+i.value_(0);
+i.value_(1);
+i.item;
+i.item_("two"); // not implemented
+i.states[i.value][0];
+i.font_(Font.new(\Georgia).size_(24));
+i.action_({|but| "got state: ".post; but.value.postln; "item: ".post; but.item.postln;}); //passed button object now
+i.remove;
+
+//button - add to window later
+i = WsButton.init(a, Rect(0, 0, 0.2, 0.2)); //WsButton imitates SC style multistate button
+i.states_([
+	["zero", Color.black, Color.rand],
+	["one", Color.black, Color.rand],
+	["two", Color.black, Color.rand]
+]);
+// now send
+i.addToPage;
+
+i.value_(0)
+i.value_(1)
+i.item
+i.item_("two") // not implemented
+i.states[i.value][0]
+i.font_(Font.new(\Georgia).size_(24))
+i.action_({|but| "got state: ".post; but.value.postln; "item: ".post; but.item.postln;}); //passed button object now
+i.remove;//remove the button
+
+a.free;//free the window
+::

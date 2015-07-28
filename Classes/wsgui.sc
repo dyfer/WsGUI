@@ -1,8 +1,15 @@
-WsGUI {
-	var <wwwPort, <oscPath, <>actionOnClose, suppressPosting;
-	var <wsPid, <wwwPid, <wwwPipe;
+/*
+This software was developed with the support of the Center for Digital Arts and Experimental Media (DXARTS), University of Washington (www.dxarts.washington.edu)
+
+Created by Marcin Pączkowski and Michael McCrea
+*/
+
+WsWindow {
+	var title, <isDefault, <>actionOnClose, suppressPosting, <useNexus;
+	var <wsPid, <oscPath;//, <wwwPipe;
 	var <wsPort, <wsOscPort; //chosen automatically
-	var <>onConnection, <>onDisconnection; //not needed?
+	var <wwwPath;
+	// var <>onConnection, <>onDisconnection; //not needed?
 	// var <pythonPath, <bridgePath, <classPath;
 	var <scSendNetAddr, <socketsResponder, <clientDict;//, <guiObjDict
 	var <guiObjects; //guiObjects: name -> [widgetParams, function, controlSpec]
@@ -11,25 +18,213 @@ WsGUI {
 	var <bodyID; //this will be id of the object referring to the body, when the background is first set;
 	var <titleID; //this will be id of the object referring to the title, when the background is first set;
 	var <curWidgetID = 0;
+	var <windowID; //for multiple windows
 	var styleKeys, numericOutputKinds;
+	var <wwwServerStartedFromWsWindow = false;
 
-	classvar <>pythonPath, <>bridgePath, <>checkPortPath, <classPath; //set in init...
+	classvar <>pythonPath, <>bridgePath, <>staticServerPath, <>checkPortPath, <classPath, <classDir; //set in init...
 	// classvar <>jsFilePath = "www/ws.js";
-	classvar <>wwwPath = "www"; //relative to class
+	classvar oscRootPath = "/sockets";
+	classvar currentWindowID;
+	classvar <>globalWwwPath = "www"; //relative to class
 	classvar <>jsFilename = "wsport.js"; //relative to class
 	classvar <>discMsgFile = "discMessage.js";
+	classvar <wwwPid, <wwwPort;
+	classvar <allWsWindows;// = IdentityDictionary.new;
+	classvar <sourceWwwPath = "supportFiles/wwwSource";
+	classvar <sourceWwwPathNexus = "supportFiles/wwwSourceNexus";
+	classvar <defaultWwwPath = "supportFiles/wwwDefault";
+	classvar <redirectionAddrFile = "whereto.js";
+	classvar <redirectionHtmlFile = "index.html";
+	// classvar <sourceHtmlFile = "index.html";
+	// classvar <sourceWsFile = "ws.js";
+	// classvar <sourceWsNexusFile = "ws_nexus.js";
+	classvar functionAddedToShutdown = false;
+	// classvar <sourceFiles =
 
-	*new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
-		oscPath = "/sockets", actionOnClose, suppressPosting = false|
-		^super.newCopyArgs(wwwPort, // wsPort, wsOscPort,
-			oscPath, actionOnClose, suppressPosting).init;
+	// *new {|wwwPort, // wsPort = 9999, wsOscPort = 7000,
+	// 	oscPath = "/sockets", actionOnClose, suppressPosting = false|
+	// 	^super.newCopyArgs(wwwPort, // wsPort, wsOscPort,
+	// 		oscPath, actionOnClose, suppressPosting).init;
+	// }
+	*new {|title, isDefault = true, wwwPort, actionOnClose, suppressPosting = false, useNexus = false|
+		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting, useNexus).init(wwwPort);
 	}
 
-	*killPython { //sometimes needed
+	*addToShutdown {
+		if(functionAddedToShutdown.not, {
+			ShutDown.objects = ShutDown.objects.add({WsWindow.freeAll});
+			functionAddedToShutdown = true;
+		});
+	}
+
+	*startWwwServer {arg port = 8000, suppressPosting = false;
+		var rootPath = globalWwwPath;
+		var cmd;
+		this.setClassVars; //set that first
+		this.addToShutdown;
+		wwwPort = port; //set classvar
+		if(rootPath[0] == "~", {//it's relative to home directory
+			rootPath = rootPath.standardizePath;
+		}, {
+			if(rootPath[0] != "/", {//it's relative to the class file
+				rootPath = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ rootPath;
+			});
+		});
+		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
+		postf("Starting www server, root path: %\n", rootPath);
+		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
+		// cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
+		// staticServerPath
+		cmd = "exec" + pythonPath + "-u" + staticServerPath + port.asString + rootPath; //-u makes posting possible (makes stdout unbuffered)
+		// "wwwPid: ".post; wwwPid.postln;
+		// "class: ".post; wwwPid.class.postln;
+		// "wwwPort: ".post; wwwPort.postln;
+		if(wwwPid.isNil, {
+			// if(this.checkWwwPort, {
+			wwwPid = cmd.unixCmd({
+				"Python static www server stopped!".postln;
+				wwwPid = nil;
+				// this.killWS;
+			}, postOutput: suppressPosting.not);
+			// }, {
+				// Error("WsWindow www server: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
+			// });
+		}, {
+			("WWW server at port " ++ wwwPort.asString ++ " seems already running, new server NOT started, continuing...").warn;
+			// wwwPort = nil; // clear classvar - why?
+		});
+	}
+
+	*stopWwwServer {
+		if(wwwPid.notNil, {
+			postf("Stopping www server, pid %\n", wwwPid);
+			("kill" + wwwPid).unixCmd;
+		}, {
+			"Www server not running, nothing to kill".postln;
+		});
+	}
+
+	*checkWwwPort {
+		this.setClassVars;
+		^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
+	}
+
+	*freeAll {
+		// this.allWsWindows.do(_.free); //this doesn't always free all instances! Bug? or is it because the dictionary is beinng modified while iterated over?
+		WsWindow.allWsWindows.keys.do({|thisKey|
+			// WsWindow.allWsWindows[thisKey].title.postln;
+			WsWindow.allWsWindows[thisKey].free;
+		});
+		this.stopWwwServer;
+	}
+
+
+	*killPython { //use this ONLY if you lost python process PID - like overwriting a variable or recompiling library
 		"killall python".unixCmd
 	}
 
-	*updateWsPortInFile {arg port = 8000;
+	// //this needs to be run before starting WsWindow
+	// *setDisconnectedMessage {|message|
+	// 	// var path = wwwPath; //www path
+	// 	var path = sourceWwwPath; //change the source file
+	// 	var filename = discMsgFile;
+	// 	var fileContentsArray, filePath;
+	// 	if(path[0] == "~", {//it's relative to home directory
+	// 		path = path.standardizePath;
+	// 	}, {
+	// 		if(path[0] != "/", {//it's relative to the class file
+	// 			path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
+	// 		});
+	// 	});
+	// 	filePath = path.withTrailingSlash ++ filename;
+	// 	"Writing disconnection message to the file at ".post; filePath.postln;
+	// 	// File.use(path, "r", {|file|
+	// 	// 	fileContentsArray = file.readAllString.split($\n).collect({|thisLine, lineNumber|
+	// 	// 		thisLine.postln;
+	// 	// 		if(thisLine.replace(" ", "").replace("	", "").beginsWith("varwsPort"), {
+	// 	// 			// "This is the line!".postln;
+	// 	// 			thisLine = thisLine.split($=)[0] ++ " = " ++ port ++ ";";
+	// 	// 		});
+	// 	// 		thisLine;
+	// 	// 	});
+	// 	// });
+	// 	File.use(filePath, "w", {|file|
+	// 		// fileContentsArray.do({|thisLine, lineNumber|
+	// 		file.write("var discMessage = \"" ++ message.asString.replace("\n", "<br>") ++ "\";")
+	// 		// });
+	// 	});
+	// 	"Writing done.".postln;
+	// }
+
+	*setClassVars {
+		pythonPath ?? {pythonPath = "python"};
+		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
+		classDir ?? {classDir = classPath.dirname};
+		bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
+		checkPortPath ?? {checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ )};
+		staticServerPath ?? {staticServerPath = (classPath.dirname ++ "/python/simplehttpserver.py").escapeChar($ )};
+	}
+
+	init {|wwwPortArg|
+		allWsWindows ?? {allWsWindows = IdentityDictionary.new}; //create dictionary with all members if not already done
+		//first check if the name is valid
+		title ?? {title = "default"};
+		windowID = title.replace(" ", "").asSymbol;
+		if(allWsWindows[windowID].notNil, {
+			Error("WsWindow with name \"" ++ title ++ "\" already exists. Please use other title or remove existing WsWindow").throw;
+		}, {
+			allWsWindows[windowID] = this;
+
+			actionOnClose ?? {actionOnClose = {}};
+			WsWindow.setClassVars;
+			WsWindow.addToShutdown;
+			// pythonPath ?? {pythonPath = "python"};
+			// classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
+			// classDir ?? {classDir = classPath.dirname};
+			// bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
+			// checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
+
+			//init vars
+			guiObjects = IdentityDictionary.new(know: true);
+			clientDict = IdentityDictionary.new(know: true);
+			namesToIDs = IdentityDictionary.new(know: true);
+			styleKeys = [\bounds, \color, \backgroundColor, \textColor, \font, \textAlign, \css]; //this are all symbols that should not be intepreted as object parameters, but rather as stylig (CSS) elements; custom css string can be added under \css key
+			numericOutputKinds = [\slider];
+
+			//check www server, start if port is available
+			wwwPortArg !? {
+				// if(this.checkWwwPort, {
+				// 	this.startWwwServer(wwwPort)
+				// }, {
+				// 	Error("WsWindow: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
+				// })
+				WsWindow.startWwwServer(wwwPortArg);
+				wwwServerStartedFromWsWindow = true;
+			};
+
+			//path
+			wwwPath = globalWwwPath ++ "/" ++ windowID.asString;
+			// this.addSubdirectory; //moved to OSC responder
+			if(isDefault, {
+				this.isDefault_(isDefault)
+			});
+			// this.setDefaultRedirectionAddress; //now figure out the address
+
+			this.getPorts; //get next free port for osc communication
+			// this.updateWsPortInFile(wsPort); //moved to OSC responder
+
+			//important - create individual path for osc messages
+			// oscPath = oscRootPath ++ "/" ++ wsPort.asString;
+			oscPath = oscRootPath ++ "/" ++ windowID.asString;
+			"oscPath: ".post; oscPath.postln;
+			this.startBridge; //to give time
+			// guiObjects[titleID][0][\title] = title;//workaround so it's available right away
+			{this.title_(title)}.defer(1); //awful hack for now to solve possible timing problems
+		});
+	}
+
+	updateWsPortInFile {arg port = 80000;
 		var path = wwwPath; //www path
 		var filename = jsFilename;
 		var fileContentsArray, filePath;
@@ -60,40 +255,35 @@ WsGUI {
 		"Writing done.".postln;
 	}
 
-	*setDisconnectedMessage {|message|
-		var path = wwwPath; //www path
-		var filename = discMsgFile;
-		var fileContentsArray, filePath;
-		if(path[0] == "~", {//it's relative to home directory
-			path = path.standardizePath;
-		}, {
-			if(path[0] != "/", {//it's relative to the class file
-				path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
-			});
-		});
-		filePath = path.withTrailingSlash ++ filename;
-		"Writing disconnection message to the file at ".post; filePath.postln;
-		// File.use(path, "r", {|file|
-		// 	fileContentsArray = file.readAllString.split($\n).collect({|thisLine, lineNumber|
-		// 		thisLine.postln;
-		// 		if(thisLine.replace(" ", "").replace("	", "").beginsWith("varwsPort"), {
-		// 			// "This is the line!".postln;
-		// 			thisLine = thisLine.split($=)[0] ++ " = " ++ port ++ ";";
-		// 		});
-		// 		thisLine;
+	setDefaultRedirectionAddress {//address relative to globalWwwPath
+		var address = wwwPath.asRelativePath(globalWwwPath); //this should just give us relative path
+		var filePath;
+		// if(path[0] == "~", {//it's relative to home directory
+		// 	path = path.standardizePath;
+		// }, {
+		// 	if(path[0] != "/", {//it's relative to the class file
+		// 		path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
 		// 	});
 		// });
+		filePath = classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile;
+		"Writing destination address to the file at ".post; filePath.postln;
 		File.use(filePath, "w", {|file|
-			// fileContentsArray.do({|thisLine, lineNumber|
-			file.write("var discMessage = \"" ++ message.asString.replace("\n", "<br>") ++ "\";")
-			// });
+			file.write("var destination = \"" ++ address.asString ++ "\";")
 		});
 		"Writing done.".postln;
 	}
 
-	init {
-		actionOnClose ?? {actionOnClose = {}};
+	setAsDefault {
+		var copyCmd;
+		"Setting as default, copying/writing files".postln;
+		//set the variable
+		this.setDefaultRedirectionAddress;
+		//copy index
+		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ globalWwwPath).escapeChar($ );
+		// "copying index.html, command: ".post; copyCmd.postln;
+		copyCmd.systemCmd;
 
+<<<<<<< HEAD
 		pythonPath ?? {pythonPath = "python"};
 		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
 		bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
@@ -118,66 +308,161 @@ WsGUI {
 		this.getPorts; //get next free port for websockets and udp communication
 		WsGUI.updateWsPortInFile(wsPort);
 		this.startBridge; //to give time
+=======
+		isDefault = true; //set the var
+>>>>>>> multipage
 	}
 
-	getPorts {
-		wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger;
-		wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
+	unsetAsDefault{
+		var rm1cmd, rm2cmd;
+		//remove both files
+		"Removing files for redirection".postln;
+		rm1cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ );
+		// "rm1cmd: ".post; rm1cmd.postln;
+		rm1cmd.systemCmd;
+		rm2cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile).escapeChar($ );
+		// "rm2cmd: ".post; rm2cmd.postln;
+		rm2cmd.systemCmd;
+
+		isDefault = false; //set the var
 	}
 
-	checkStaticPort {
-		^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
+	isDefault_ {|val = false|
+		if(val, {
+			"removing other defaults".postln;
+			allWsWindows.do({|thisWindow|
+				if(thisWindow.windowID != windowID, {
+					thisWindow.isDefault = false;
+				});
+			});
+			this.setAsDefault;
+		}, {
+			this.unsetAsDefault;
+		});
 	}
 
+	getPorts { //moved to prPrepareGlobalResponders
+		// wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger; moved to the responder!
+		// wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
+	}
 
 	startBridge {
 		var cmd;
+		this.prPrepareGlobalResponders; //first, so we're ready
 		//starting python socket bridge
 		//usage: python ws_osc.py SC_OSC_port, ws_OSC_port, oscPath, ws_port
 		cmd = "exec" + pythonPath + "-u" + bridgePath + NetAddr.langPort + wsOscPort + oscPath + wsPort; //-u makes posting possible (makes stdout unbuffered)
+		"websocket server cmd: ".post; cmd.postln;
 		wsPid = cmd.unixCmd({|code, exPid|
-			("Bridge stopped, exit code: " ++ code ++ "; cleaning up").postln;
+			("WebSocket server stopped, exit code: " ++ code ++ "; cleaning up").postln;
 			wsPid = nil;
-			this.killWWW;
-			this.prCleanup;
+			// this.killWWW;
+			//stop www server only if it was started with this window instance:
+			"wwwServerStartedFromWsWindow: ".post; wwwServerStartedFromWsWindow.postln;
+			if(wwwServerStartedFromWsWindow, {
+				// for future - check if there are no other WsWindows using the server...
+				WsWindow.stopWwwServer;
+			});
+			// this.prCleanup; //should be done first using .free
 		}, suppressPosting.not);
 
-		this.prPrepareGlobalResponders; //needs to be done after starting node, so node doesn't end up binding to osc receive port
+		// this.prPrepareGlobalResponders; //needs to be done after starting node, so node doesn't end up binding to osc receive port
 
 		//prepare send port
-		scSendNetAddr = NetAddr("localhost", wsOscPort);
+		// scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
 	}
 
-	startStaticServer {arg port = 8000;
-		var rootPath = wwwPath;
-		var cmd;
-		if(rootPath[0] == "~", {//it's relative to home directory
-			rootPath = rootPath.standardizePath;
+	// startWwwServer {arg port = 8000;
+	// 	var rootPath = wwwPath;
+	// 	var cmd;
+	// 	if(rootPath[0] == "~", {//it's relative to home directory
+	// 		rootPath = rootPath.standardizePath;
+	// 	}, {
+	// 		if(rootPath[0] != "/", {//it's relative to the class file
+	// 			rootPath = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ rootPath;
+	// 		});
+	// 	});
+	// 	rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
+	// 	postf("Starting www server, root path: %\n", rootPath);
+	// 	// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
+	// 	cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
+	// 	// if(suppressPosting, {
+	// 	// 	cmd = cmd + "> /dev/null";
+	// 	// });
+	// 	// postf("cmd: %\n", cmd);
+	// 	wwwPid = cmd.unixCmd({
+	// 		"Python www (www) server stopped!".postln;
+	// 		wwwPid = nil;
+	// 		this.killWS;
+	// 	}, postOutput: suppressPosting.not);
+	// 	// wwwPipe = Pipe.new(cmd, "w");
+	// }
+
+	addSubdirectory {
+		var cmd, copyCmd;
+		"Creating subdirectory and copying files".postln;
+		//mkdir
+		cmd = "mkdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
+		// "Creading subdirectory, command: ".post; cmd.postln;
+		cmd.systemCmd;
+
+		//copy files
+		// copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
+		// // "Creading subdirectory, command: ".post; copyCmd.postln;
+		// copyCmd.systemCmd;
+	}
+
+	//add linking depending wether it's using nexus or not
+	
+	copyFiles {
+		var cmd, copyCmd, thisWsFile;
+		//copy files
+		// copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
+		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks instead
+		// "Copying files, command: ".post; copyCmd.postln;
+		// copyCmd.systemCmd;
+
+		//symlink html
+		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/" ++ sourceHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks instead
+		// "Copying files, command: ".post; copyCmd.postln;
+		// copyCmd.systemCmd;
+		
+		//symlink 
+		if(useNexus, {
+			// thisWsFile = sourceWsNexusFile;
+			copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPathNexus ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
 		}, {
-			if(rootPath[0] != "/", {//it's relative to the class file
-				rootPath = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ rootPath;
-			});
+			// thisWsFile = sourceWsFile;
+			copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
 		});
-		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
-		postf("Starting static www server, root path: %\n", rootPath);
-		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
-		cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
-		// if(suppressPosting, {
-		// 	cmd = cmd + "> /dev/null";
-		// });
-		// postf("cmd: %\n", cmd);
-		wwwPid = cmd.unixCmd({
-			"Python www (static) server stopped!".postln;
-			wwwPid = nil;
-			this.killWS;
-		}, postOutput: suppressPosting.not);
-		// wwwPipe = Pipe.new(cmd, "w");
+		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath.withTrailingSlash ++ thisWsFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ sourceWsFile).escapeChar($ ); //symlink - note proper linked file name regardless of the ws file used
+		// "Copying files, command: ".post; copyCmd.postln;
+		copyCmd.systemCmd;
+	}
+
+	removeSubdirectory {
+		var rmFilesCmd, rmDirCmd, rmWsJs;
+		//remove all files - or just known files?
+		//all for now
+		"Removing files and subdirectory".postln;
+
+		//rmFilesCmd
+		rmFilesCmd = "rm " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*").escapeChar($ );
+		// "Removing files from current directory, command: ".post; rmFilesCmd.postln;
+		rmFilesCmd.systemCmd;
+
+		//rmDirCmd
+		rmDirCmd = "rmdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
+		// "Removing subdirectory, command: ".post; rmDirCmd.postln;
+		rmDirCmd.systemCmd;
+
+		//remove directory
 	}
 
 	prPrepareGlobalResponders {
 		socketsResponder = OSCdef(oscPath, {|msg, time, addr, recvPort|
 			var command, hostport, data;
-			//command is either 'add', 'remove', or 'data'
+			//command is either 'add', 'remove', 'data' or 'wsport' (for initial websocket port setting)
 			#command, hostport, data= msg[[1, 2, 3]];
 			command = command.asSymbol;
 			hostport = hostport.asSymbol;
@@ -189,14 +474,28 @@ WsGUI {
 			command.switch(
 				\add, {this.addWsClient(hostport)},
 				\remove, {this.removeWsClient(hostport)},
-				\data, {this.interpretWsData(hostport, data)}
+				\data, {this.interpretWsData(hostport, data)},
+				\wsport, {
+					wsPort = hostport.asInteger; //2nd argument
+					// scSendNetAddr ?? {
+					this.addSubdirectory;
+					this.updateWsPortInFile(wsPort); //moved to OSC responder
+					this.copyFiles;
+					"received ws port: ".post; wsPort.postln;
+				},
+				\oscport,{
+					wsOscPort = hostport.asInteger; //2nd argument
+					scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
+				}
 			);
 		}, oscPath);
 	}
 
 	sendMsg {|dest, msg|
 		// "Sending from SC: ".post; [dest, msg].postln;
-		scSendNetAddr.sendMsg(dest, msg);
+		if(scSendNetAddr.notNil, { //just in case
+			scSendNetAddr.sendMsg(dest, msg);
+		});
 		// scSendNetAddr.sendBundle(0, dest, msg);
 	}
 
@@ -310,25 +609,38 @@ WsGUI {
 		});
 	}
 
-	killWWW {
-		if(wwwPid.notNil, {
-			postf("Killing www server, pid %\n", wwwPid);
-			("kill" + wwwPid).unixCmd;
-		}, {
-			// "Static server not running, nothing to kill".postln;
-		});
-	}
+	// killWWW {
+	// 	if(wwwPid.notNil, {
+	// 		postf("Killing www server, pid %\n", wwwPid);
+	// 		("kill" + wwwPid).unixCmd;
+	// 	}, {
+	// 		// "Www server not running, nothing to kill".postln;
+	// 	});
+	// }
 
 	free {
+		"Freeing WsWindow titled ".post; title.postln;
+		this.prCleanup;// clean up directories first
+		// scSendNetAddr.dump;
 		scSendNetAddr.sendMsg("/quit");
 		{this.killWS}.defer(0.4); //if bridge won't close, this will kill it; also waits for any outstanding connections
 		// this.prCleanup; //this will get called when ws bridge exits
 	}
 
+	close {
+		^this.free;
+	}
+
 	prCleanup {
 		//also close extra open ports here? probably not necessary
 		socketsResponder.free;
-		this.removeAllImageLinks; //clean images
+		// this.removeAllImageLinks; //clean images - not needed when removing whole directory
+		this.removeSubdirectory;
+		"isDefault: ".post; isDefault.postln;
+		if(isDefault, {
+			this.isDefault_(false);
+		});
+		allWsWindows.removeAt(windowID);
 		// disconReponder.free;
 		// this.clear;
 		actionOnClose.value;
@@ -498,9 +810,11 @@ WsGUI {
 
 	createImageLink {|path, id|
 		var cmd, relativeImgPath;
-		relativeImgPath = "images/" ++ id.asString;
-		cmd = "ln -sf " ++ path.escapeChar($ ) + (classPath.dirname ++ "/www/" ++ relativeImgPath).escapeChar($ );
+		// relativeImgPath = "images/" ++ id.asString; //to not have to deal with removing the directory afterwards...
+		relativeImgPath = id.asString;
+		cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
 		"Creating symlink: ".post;
+<<<<<<< HEAD
 
 		cmd.unixCmdGetStdOut; //synchronously, so we have the link on time
 		^relativeImgPath;
@@ -513,6 +827,21 @@ WsGUI {
 
 		cmd.unixCmd;
 	}
+=======
+		cmd.postln;
+		cmd.systemCmd; //synchronously, so we have the link on time
+		^relativeImgPath;
+	}
+
+		//obsolete, all files are removed anyway
+	// removeAllImageLinks {
+	// 	var cmd;
+	// 	cmd = "rm " ++ (classPath.dirname ++ "/www/images/*").escapeChar($ );
+	// 	"Removing image links".postln;
+	// 	// cmd.postln;
+	// 	cmd.unixCmd;
+	// }
+>>>>>>> multipage
 
 	removeWidget {|idOrName|
 		var id;
@@ -565,7 +894,7 @@ WsGUI {
 		^curID;
 	}
 
-	backgroundColor_ {|color|
+	background_ {|color|
 		if(bodyID.isNil, {
 			bodyID = this.addWidget(nil, \body, {},
  parameters: IdentityDictionary.new.put(\backgroundColor, color));
@@ -577,7 +906,7 @@ WsGUI {
 		^color;
 	}
 
-	backgroundColor {
+	background {
 		if(bodyID.notNil, {
 			^guiObjects[bodyID][0][\backgroundColor];
 		}, {
@@ -600,7 +929,7 @@ WsGUI {
 		if(titleID.notNil, {
 			^guiObjects[titleID][0][\title];
 		}, {
-			^nil;
+			^title;
 		});
 	}
 
@@ -766,9 +1095,9 @@ WsWidget {
 	var ws, <bounds;
 	var <id;
 
-	// TODO: change so wsGUI isn't necessary at this stage
-	add {|wsGUI, argbounds, kind, sendNow = true|
-		ws = wsGUI;
+	// TODO: change so wsWindow isn't necessary at this stage
+	add {|wsWindow, argbounds, kind, sendNow = true|
+		ws = wsWindow;
 		argbounds !? {bounds = argbounds};
 		id = ws.addWidget(nil, kind, {},
 			IdentityDictionary.new.put(\bounds, bounds ?? Rect(0, 0, 0.1, 0.1)),
@@ -782,6 +1111,7 @@ WsWidget {
 	bounds_ { |boundsRect|
 		bounds = boundsRect ?? Rect(0, 0, 0.1, 0.1);
 		ws.guiObjects[id][0][\bounds] = bounds;
+		ws.updateWidget(id, \bounds);
 	}
 
 	action_ {|function|
@@ -792,7 +1122,7 @@ WsWidget {
 		^ws.guiObjects[id][1];
 	}
 
-	backgroundColor_ {|color|
+	background_ {|color|
 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 			ws.guiObjects[id][0].put(\backgroundColor, color);
 		}, {
@@ -801,11 +1131,11 @@ WsWidget {
 		ws.updateWidget(id, \backgroundColor);
 	}
 
-	backgroundColor {
+	background {
 		^ws.guiObjects[id][0][\backgroundColor];
 	}
 
-	textColor_ {|color|
+	stringColor_ {|color|
 		if(ws.guiObjects[id][0][\textColor].isNil, {
 			ws.guiObjects[id][0].put(\textColor, color);
 		}, {
@@ -814,7 +1144,7 @@ WsWidget {
 		ws.updateWidget(id, \textColor);
 	}
 
-	textColor {
+	stringColor {
 		^ws.guiObjects[id][0][\textColor];
 	}
 
@@ -831,7 +1161,7 @@ WsWidget {
 		^ws.guiObjects[id][0][\font];
 	}
 
-	textAlign_ {|align|
+	align_ {|align|
  		if(ws.guiObjects[id][0][\textAlign].isNil, {
 			ws.guiObjects[id][0].put(\textAlign, align);
 		}, {
@@ -840,7 +1170,7 @@ WsWidget {
 		ws.updateWidget(id, \textAlign);
 	}
 
-	textAlign {
+	align {
 		^ws.guiObjects[id][0][\textAlign];
 	}
 
@@ -866,6 +1196,7 @@ WsWidget {
 	}
 
 	string_ {|thisString|
+		thisString ?? {thisString = ""; "thisString was nil".warn};
 		thisString = thisString.replace("\n", "<br>");//convert newline for html
 		thisString = thisString.replace("\t", "&nbsp;&nbsp;&nbsp;");//convert newline for html
  		if(ws.guiObjects[id][0][\innerHTML].isNil, {
@@ -887,25 +1218,34 @@ WsWidget {
 
 WsSimpleButton : WsWidget {
 
-	*new {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: true);
+	*new {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: false);
 	}
 }
 
 WsButton : WsWidget {
 	var <value = 0, <numStates = 0, <states;
 
+<<<<<<< HEAD
 	*new {|wsGUI, bounds|
 		^super.new.add(wsGUI, bounds, \button, sendNow: true).prInitAction;
 	}
 
 	*init {|wsGUI, bounds|
 		^super.new.add(wsGUI, bounds, \button, sendNow: false).prInitAction;
+=======
+	*new {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: true);
+	}
+
+	*init {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: false);
+>>>>>>> multipage
 	}
 
 	// super.action_ overwrite to include incrementing the state counter in the function
@@ -965,55 +1305,57 @@ WsButton : WsWidget {
 
 WsStaticText : WsWidget {
 
-	*new {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \text, sendNow: true);
+	*new {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \text, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \text, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \text, sendNow: false);
 	}
 }
 
 WsImage : WsWidget {
 	var <path;
 
-	*new {|wsGUI, bounds, path|
-		^super.new.add(wsGUI, bounds, \image, sendNow: true).addPath(path);
+	*new {|wsWindow, bounds, path, isURL = false|
+		^super.new.add(wsWindow, bounds, \image, sendNow: true).path_(path, isURL);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds, path|
-		^super.new.add(wsGUI, bounds, \image, sendNow: false).addPath(path);
+	*init { |wsWindow, bounds, path, isURL = false|
+		^super.new.add(wsWindow, bounds, \image, sendNow: false).path_(path, isURL);
 	}
 
-	addPath { |path|
-		path !? { ws.guiObjects[id][0].put(\src, path) };
-	}
+	// addPath { |path|
+	// 	path !? { ws.guiObjects[id][0].put(\src, path) };
+	// }
 
 	path_ {|newPath, isURL = false|
 		var relPath;
-		path = newPath;
-		if(isURL, {
-			relPath = newPath;
-		}, {
-			relPath = ws.createImageLink(newPath, id);
+		if(newPath.notNil, {
+			path = newPath;
+			if(isURL, {
+				relPath = newPath;
+			}, {
+				relPath = ws.createImageLink(newPath, id);
+			});
+			ws.guiObjects[id][0].put(\src, relPath);
+			ws.updateWidget(id, \src);
 		});
-		ws.guiObjects[id][0].put(\src, relPath);
-		ws.updateWidget(id, \src);
 	}
 }
 
 // TODO: reevaluate the difference between this and EZSlider
 WsSlider : WsWidget {
 
-	*new { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \slider, sendNow: true);
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \slider, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \slider, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \slider, sendNow: false);
 	}
 
 	value_ {|val|
@@ -1036,19 +1378,85 @@ WsSlider : WsWidget {
 	}
 }
 
+WsInput : WsWidget {
+
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \input, sendNow: true);
+	}
+
+	// doesn't send to page, just inits the object
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \input, sendNow: false);
+	}
+
+	value_ {|val|
+		ws.guiObjects[id][0][\value] = val;
+		ws.updateWidget(id, \value);
+	}
+
+	value {
+		^ws.guiObjects[id][0][\value];
+	}
+
+	valueAction_ {|val|
+		this.value_(val);
+		this.action.();
+		^val;
+	}
+
+	font_ {|font|
+		if(ws.guiObjects[id][0][\font].isNil, {
+			ws.guiObjects[id][0].put(\font, font);
+		}, {
+			ws.guiObjects[id][0][\font] = font;
+		});
+		ws.updateWidget(id, \textColor);
+	}
+
+	font {
+		^ws.guiObjects[id][0][\font];
+	}
+
+	background_ {|color|
+		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
+			ws.guiObjects[id][0].put(\backgroundColor, color);
+		}, {
+			ws.guiObjects[id][0][\backgroundColor] = color;
+		});
+		ws.updateWidget(id, \backgroundColor);
+	}
+
+	background {
+		^ws.guiObjects[id][0][\backgroundColor];
+	}
+
+	stringColor_ {|color|
+		if(ws.guiObjects[id][0][\textColor].isNil, {
+			ws.guiObjects[id][0].put(\textColor, color);
+		}, {
+			ws.guiObjects[id][0][\textColor] = color;
+		});
+		ws.updateWidget(id, \textColor);
+	}
+
+	stringColor {
+		^ws.guiObjects[id][0][\textColor];
+	}
+}
+
 WsEZSlider : WsSlider { //this should later be implemented as call to WsSlider and WsStaticText for label and value
 
 }
 
 WsPopUpMenu : WsWidget {
 
-	*new { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \menu, sendNow: true);
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \menu, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \menu, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \menu, sendNow: false);
 	}
 
 	items_ {|itemArr|
@@ -1091,13 +1499,13 @@ WsPopUpMenu : WsWidget {
 
 WsCheckbox : WsWidget {
 
-	*new { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \checkbox, sendNow: true);
+	*new { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \checkbox, sendNow: true);
 	}
 
 	// doesn't send to page, just inits the object
-	*init { |wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \checkbox, sendNow: false);
+	*init { |wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \checkbox, sendNow: false);
 	}
 
 	value_ {|val|
