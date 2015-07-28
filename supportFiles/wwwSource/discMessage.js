@@ -1,1 +1,0 @@
-var discMessage = "<h3>Connection interrupted</h3><h1>Marcin is working hard to fix this...<br><br>Thank you for your patience!</h1>";

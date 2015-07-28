@@ -55,6 +55,30 @@ Gets or sets function to be evaluated when the button is pressed. Function is pa
 ARGUMENT:: function
 Any object to set as default action, usually a Function.
 
+METHOD:: string
+Get/set a text content for applicable widgets.
+ARGUMENT:: thisString
+A string to be set.
+returns:: current string
+
+METHOD:: align
+Change alignment of the text.
+ARGUMENT:: align
+Can be code::\left::, code::\right::, code::\center::, code::\justify::.
+returns:: Current alignment.
+
+METHOD:: font
+Change the font of the text for applicable widgets.
+ARGUMENT:: font
+An instance of code::Font::. Size and font face are supported.
+returns:: Current font.
+
+METHOD:: addToPage
+Add to window/page specified in *init.
+
+METHOD:: remove
+Removes the widget from the window.
+
 EXAMPLES::
 
 code::

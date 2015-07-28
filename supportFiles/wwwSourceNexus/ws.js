@@ -53,7 +53,7 @@ function checkWwwConnection(){
 openWS(); //start
 
 function onWsOpen() {
-    // document.body.innerHTML = "WebSocket connection opened. This message will disappear after adding the first object."; //document.body is null here?
+    // document.body.innerHTML = "WebSocket connection opened. This message will disappear after adding the first object.";
     isConnected = true;
     clearInterval(checking);
     isChecking = false;
@@ -191,10 +191,11 @@ var addWidget = function(id, params) {
 	// console.log("in case: ", thisWidget);
 	break;
     case "slider":
-	thisWidget = document.createElement('input');
-	thisWidget.setAttribute('type', 'range');
-	// thisWidget.onclick = function(){ws.send([id, thisWidget.value])}; //not sure if we want it
-	thisWidget.oninput = function(){ws.send([id, thisWidget.value])};
+	// thisWidget = document.createElement('input');
+	// thisWidget.setAttribute('type', 'range');
+	thisWidget = nx.add('slider'); //width height here? {w:90%, h:10%}
+	// thisWidget.oninput = function(){ws.send([id, thisWidget.value])};
+	thisWidget.on('*', function(obj){ws.send([id, thisWidget.val.value])});
 	//sending commands here
 	break;
     case "input":

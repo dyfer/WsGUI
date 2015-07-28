@@ -31,7 +31,6 @@ PRIVATE:: jsFilename
 PRIVATE:: staticServerPath
 PRIVATE:: checkPortPath
 PRIVATE:: setClassVars
-PRIVATE:: setDisconnectedMessage
 PRIVATE:: wwwPort
 PRIVATE:: bridgePath
 PRIVATE:: globalWwwPath
@@ -58,6 +57,9 @@ A function to be evaluated when the window is closed (i.e. freed in SuperCollide
 
 ARGUMENT:: suppressPosting
 If code::true::, then messages from Python websocket server will not post to SC's post window.
+
+ARGUMENT:: useNexus
+If code::true::, uses NexusUI widgets. strong::This functionality is not finished.::
 
 returns:: An instance of WsWindow
 
@@ -174,8 +176,8 @@ METHOD:: clear
 	Removes all GUI elements from the WsWindow (but does not close/free it).
 
 
-METHOD:: backgroundColor
-Used to set/get the background color.
+METHOD:: background
+Set/get the background color.
 
 ARGUMENT:: color
 Should be an instance of a code::Color::.
@@ -202,8 +204,8 @@ a = WsWindow.new("new title", true, 8000); //specify port for using internal sta
 NetAddr.myIP; //from NetLib; useful for connecting external clients
 
 //background and title
-a.backgroundColor_(Color.blue);
-a.backgroundColor_(Color.green);
+a.background_(Color.blue);
+a.background_(Color.green);
 a.title_("different title");
 
 //finishing

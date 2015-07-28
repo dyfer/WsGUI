@@ -32,9 +32,13 @@ WsWindow {
 	classvar <wwwPid, <wwwPort;
 	classvar <allWsWindows;// = IdentityDictionary.new;
 	classvar <sourceWwwPath = "supportFiles/wwwSource";
+	classvar <sourceWwwPathNexus = "supportFiles/wwwSourceNexus";
 	classvar <defaultWwwPath = "supportFiles/wwwDefault";
 	classvar <redirectionAddrFile = "whereto.js";
 	classvar <redirectionHtmlFile = "index.html";
+	// classvar <sourceHtmlFile = "index.html";
+	// classvar <sourceWsFile = "ws.js";
+	// classvar <sourceWsNexusFile = "ws_nexus.js";
 	classvar functionAddedToShutdown = false;
 	// classvar <sourceFiles =
 
@@ -120,38 +124,38 @@ WsWindow {
 		"killall python".unixCmd
 	}
 
-	//this needs to be run before starting WsWindow
-	*setDisconnectedMessage {|message|
-		// var path = wwwPath; //www path
-		var path = sourceWwwPath; //change the source file
-		var filename = discMsgFile;
-		var fileContentsArray, filePath;
-		if(path[0] == "~", {//it's relative to home directory
-			path = path.standardizePath;
-		}, {
-			if(path[0] != "/", {//it's relative to the class file
-				path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
-			});
-		});
-		filePath = path.withTrailingSlash ++ filename;
-		"Writing disconnection message to the file at ".post; filePath.postln;
-		// File.use(path, "r", {|file|
-		// 	fileContentsArray = file.readAllString.split($\n).collect({|thisLine, lineNumber|
-		// 		thisLine.postln;
-		// 		if(thisLine.replace(" ", "").replace("	", "").beginsWith("varwsPort"), {
-		// 			// "This is the line!".postln;
-		// 			thisLine = thisLine.split($=)[0] ++ " = " ++ port ++ ";";
-		// 		});
-		// 		thisLine;
-		// 	});
-		// });
-		File.use(filePath, "w", {|file|
-			// fileContentsArray.do({|thisLine, lineNumber|
-			file.write("var discMessage = \"" ++ message.asString.replace("\n", "<br>") ++ "\";")
-			// });
-		});
-		"Writing done.".postln;
-	}
+	// //this needs to be run before starting WsWindow
+	// *setDisconnectedMessage {|message|
+	// 	// var path = wwwPath; //www path
+	// 	var path = sourceWwwPath; //change the source file
+	// 	var filename = discMsgFile;
+	// 	var fileContentsArray, filePath;
+	// 	if(path[0] == "~", {//it's relative to home directory
+	// 		path = path.standardizePath;
+	// 	}, {
+	// 		if(path[0] != "/", {//it's relative to the class file
+	// 			path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
+	// 		});
+	// 	});
+	// 	filePath = path.withTrailingSlash ++ filename;
+	// 	"Writing disconnection message to the file at ".post; filePath.postln;
+	// 	// File.use(path, "r", {|file|
+	// 	// 	fileContentsArray = file.readAllString.split($\n).collect({|thisLine, lineNumber|
+	// 	// 		thisLine.postln;
+	// 	// 		if(thisLine.replace(" ", "").replace("	", "").beginsWith("varwsPort"), {
+	// 	// 			// "This is the line!".postln;
+	// 	// 			thisLine = thisLine.split($=)[0] ++ " = " ++ port ++ ";";
+	// 	// 		});
+	// 	// 		thisLine;
+	// 	// 	});
+	// 	// });
+	// 	File.use(filePath, "w", {|file|
+	// 		// fileContentsArray.do({|thisLine, lineNumber|
+	// 		file.write("var discMessage = \"" ++ message.asString.replace("\n", "<br>") ++ "\";")
+	// 		// });
+	// 	});
+	// 	"Writing done.".postln;
+	// }
 
 	*setClassVars {
 		pythonPath ?? {pythonPath = "python"};
@@ -381,11 +385,30 @@ WsWindow {
 		// copyCmd.systemCmd;
 	}
 
+	//add linking depending wether it's using nexus or not
+	
 	copyFiles {
-		var cmd, copyCmd;
+		var cmd, copyCmd, thisWsFile;
 		//copy files
 		// copyCmd = "cp " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
-		copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks instead
+		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks instead
+		// "Copying files, command: ".post; copyCmd.postln;
+		// copyCmd.systemCmd;
+
+		//symlink html
+		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/" ++ sourceHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks instead
+		// "Copying files, command: ".post; copyCmd.postln;
+		// copyCmd.systemCmd;
+		
+		//symlink 
+		if(useNexus, {
+			// thisWsFile = sourceWsNexusFile;
+			copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPathNexus ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
+		}, {
+			// thisWsFile = sourceWsFile;
+			copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
+		});
+		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath.withTrailingSlash ++ thisWsFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ sourceWsFile).escapeChar($ ); //symlink - note proper linked file name regardless of the ws file used
 		// "Copying files, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;
 	}
@@ -395,9 +418,6 @@ WsWindow {
 		//remove all files - or just known files?
 		//all for now
 		"Removing files and subdirectory".postln;
-
-		//remove ws.js first to avoid possibility of reconnecting on close - WIP
-		// rmWsJs
 
 		//rmFilesCmd
 		rmFilesCmd = "rm " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*").escapeChar($ );
@@ -830,7 +850,7 @@ WsWindow {
 		^curID;
 	}
 
-	backgroundColor_ {|color|
+	background_ {|color|
 		if(bodyID.isNil, {
 			bodyID = this.addWidget(nil, \body, {},
  parameters: IdentityDictionary.new.put(\backgroundColor, color));
@@ -842,7 +862,7 @@ WsWindow {
 		^color;
 	}
 
-	backgroundColor {
+	background {
 		if(bodyID.notNil, {
 			^guiObjects[bodyID][0][\backgroundColor];
 		}, {
@@ -1057,7 +1077,7 @@ WsWidget {
 		^ws.guiObjects[id][1];
 	}
 
-	backgroundColor_ {|color|
+	background_ {|color|
 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 			ws.guiObjects[id][0].put(\backgroundColor, color);
 		}, {
@@ -1066,11 +1086,11 @@ WsWidget {
 		ws.updateWidget(id, \backgroundColor);
 	}
 
-	backgroundColor {
+	background {
 		^ws.guiObjects[id][0][\backgroundColor];
 	}
 
-	textColor_ {|color|
+	stringColor_ {|color|
 		if(ws.guiObjects[id][0][\textColor].isNil, {
 			ws.guiObjects[id][0].put(\textColor, color);
 		}, {
@@ -1079,7 +1099,7 @@ WsWidget {
 		ws.updateWidget(id, \textColor);
 	}
 
-	textColor {
+	stringColor {
 		^ws.guiObjects[id][0][\textColor];
 	}
 
@@ -1096,7 +1116,7 @@ WsWidget {
 		^ws.guiObjects[id][0][\font];
 	}
 
-	textAlign_ {|align|
+	align_ {|align|
  		if(ws.guiObjects[id][0][\textAlign].isNil, {
 			ws.guiObjects[id][0].put(\textAlign, align);
 		}, {
@@ -1105,7 +1125,7 @@ WsWidget {
 		ws.updateWidget(id, \textAlign);
 	}
 
-	textAlign {
+	align {
 		^ws.guiObjects[id][0][\textAlign];
 	}
 
@@ -1330,7 +1350,7 @@ WsInput : WsWidget {
 		^ws.guiObjects[id][0][\font];
 	}
 
-	backgroundColor_ {|color|
+	background_ {|color|
 		if(ws.guiObjects[id][0][\backgroundColor].isNil, {
 			ws.guiObjects[id][0].put(\backgroundColor, color);
 		}, {
@@ -1339,11 +1359,11 @@ WsInput : WsWidget {
 		ws.updateWidget(id, \backgroundColor);
 	}
 
-	backgroundColor {
+	background {
 		^ws.guiObjects[id][0][\backgroundColor];
 	}
 
-	textColor_ {|color|
+	stringColor_ {|color|
 		if(ws.guiObjects[id][0][\textColor].isNil, {
 			ws.guiObjects[id][0].put(\textColor, color);
 		}, {
@@ -1352,7 +1372,7 @@ WsInput : WsWidget {
 		ws.updateWidget(id, \textColor);
 	}
 
-	textColor {
+	stringColor {
 		^ws.guiObjects[id][0][\textColor];
 	}
 }
