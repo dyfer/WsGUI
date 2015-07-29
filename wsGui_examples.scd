@@ -283,6 +283,8 @@ a.free
 
 // WsGUI.killPython // if needed... shouldn't be.
 a = WsWindow.new("title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
+
+"http://localhost:8000".openOS;
 a.free
 
 //init only, send to page later

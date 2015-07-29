@@ -1249,8 +1249,8 @@ WsButton : WsWidget {
 
 	prUpdateStringAndColors {
 		super.string_(states[value][0]);
-		super.textColor_(states[value][1]);
-		super.backgroundColor_(states[value][2]);
+		super.stringColor_(states[value][1]);
+		super.background_(states[value][2]);
 	}
 
 	// assign a default action that advances the button states
@@ -1338,7 +1338,7 @@ WsSlider : WsWidget {
 	valueAction_ {|val|
 		this.value_(val);
 		this.action.();
-		^val;
+		// ^val;
 	}
 }
 
@@ -1365,7 +1365,7 @@ WsInput : WsWidget {
 	valueAction_ {|val|
 		this.value_(val);
 		this.action.();
-		^val;
+		// ^val;
 	}
 
 	font_ {|font|
@@ -1444,7 +1444,7 @@ WsPopUpMenu : WsWidget {
 			ws.guiObjects[id][0][\value] = val;
 		});
 		ws.updateWidget(id, \value);
-		^val;
+		// ^val;
 	}
 
 	value {
