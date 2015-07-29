@@ -190,7 +190,7 @@ WsWindow {
 			clientDict = IdentityDictionary.new(know: true);
 			namesToIDs = IdentityDictionary.new(know: true);
 			styleKeys = [\bounds, \color, \backgroundColor, \textColor, \font, \textAlign, \css]; //this are all symbols that should not be intepreted as object parameters, but rather as stylig (CSS) elements; custom css string can be added under \css key
-			numericOutputKinds = [\slider];
+			numericOutputKinds = [\slider, \checkbox];
 
 			//check www server, start if port is available
 			wwwPortArg !? {
@@ -284,7 +284,7 @@ WsWindow {
 		copyCmd.systemCmd;
 
 		isDefault = true; //set the var
- 
+
 	}
 
 	unsetAsDefault{
@@ -387,7 +387,7 @@ WsWindow {
 	}
 
 	//add linking depending wether it's using nexus or not
-	
+
 	copyFiles {
 		var cmd, copyCmd, thisWsFile;
 		//copy files
@@ -400,8 +400,8 @@ WsWindow {
 		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/" ++ sourceHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks instead
 		// "Copying files, command: ".post; copyCmd.postln;
 		// copyCmd.systemCmd;
-		
-		//symlink 
+
+		//symlink
 		if(useNexus, {
 			// thisWsFile = sourceWsNexusFile;
 			copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPathNexus ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
@@ -1493,6 +1493,8 @@ WsCheckbox : WsWidget {
 	}
 }
 
+
+
 /*
 --------------------------------------
 	Layouts
@@ -1513,34 +1515,9 @@ WsLayout { //}
 	}
 }
 
-WsHLayout : WsLayout { }
-// // copyArgs
-// var <>bounds, <elements;
-//
-// *new { |bounds ... elements |
-// 	^super.newCopyArgs(bounds, elements)
-// }
-//
-// // remove the elements within the layout
-// remove {
-// 	elements.do(_.remove)
-// }
-// }
+WsHLayout : WsLayout {}
+WsVLayout : WsLayout {}
 
-WsVLayout : WsLayout { }
-// // copyArgs
-// var <>bounds, <elements;
-//
-// *new { |bounds ... elements |
-// 	^super.newCopyArgs(bounds, elements)
-// }
-//
-// // remove the elements within the layout
-// remove {
-// 	elements.do(_.remove)
-// }
-//
-// }
 
 // mtm adding init vs. new functionality
 // WsWidget { }
