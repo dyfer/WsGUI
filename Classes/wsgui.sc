@@ -929,8 +929,8 @@ WsWindow {
 		};
 	}
 
-	buildLayout { |layout, parBoundsRect| //parX, parY, parW, parH
-		var loKind, elements, nItems, dimsNorm, dimsAbs, unspecDims, nonNilDims, unKnownDimSize;
+	buildLayout { |layout, parBoundsRect|
+		var loKind, elements, nItems, dimsNorm, dimsAbs, nonNilDims, unKnownDimSize;
 		var nextX, nextY, counter=0;
 		var freeSpace=0, nilSize=0; // move to if statement where they're used
 
@@ -942,7 +942,8 @@ WsWindow {
 		elements = layout.elements;
 		nItems = elements.size;
 		// postf( "number of items: %, %\n", nItems, elements);
-		// element dimensions normalized 0>1 (1 being the full amount of the parent's bounds)
+
+		// element dimensions normalized 0>1
 		dimsNorm = elements.collect{|elem|
 			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget),
 				{ elem.bounds.notNil.if(
@@ -954,26 +955,19 @@ WsWindow {
 				},{ elem } // assumed to be either nil or a Number
 			);
 		};
-		// dimsNorm.postln;
 
 		// assign layouts or widgets with nil (unspecified) width to a width of
 		// 1/numNonNilItems and rescale other items accordingly in case a
 		// layout with unspecified width is forced to 0 width by nilSize = 0
-		// dimsNorm = dimsNorm.replace(nil, 1/nItems).normalizeSum;
-		//TODO: handle specified dimensions better
-
-		// unspecDims =	dimsNorm.select({|dim| dim == 'unspecified'}); // numbers and 'unspecified's
 
 		nonNilDims =	dimsNorm.select({|dim| dim.notNil}); // numbers and 'unspecified's
 		// postf("nonNilDims: %\n",nonNilDims);
 
 		unKnownDimSize =	nonNilDims.size.reciprocal; // size assigned to unspecified dimension
-		// unKnownDimSize =	unspecDims.size.reciprocal; // size assigned to unspecified dimension
 		// postf("unKnownDimSize: %\n",unKnownDimSize);
 
 		nonNilDims =	nonNilDims.replace('unspecified', unKnownDimSize);
 		// postf("nonNilDims: %\n", nonNilDims);
-		// postf("sum: %\n", nonNilDims.sum);
 
 		if(nonNilDims.sum > 1,
 			{ 	// dimensions are rescaled
@@ -991,7 +985,6 @@ WsWindow {
 				var numNils;
 				freeSpace = 1 - nonNilDims.sum;
 				numNils = dimsNorm.occurrencesOf(nil);
-				// freeSpace = (1 - dimsNorm.select({|width| width.notNil}).sum).clip(0,1);
 				nilSize = if(( numNils > 0) and: (freeSpace > 0), {freeSpace / numNils},{0});
 				dimsAbs = dimsNorm.collect({ |item, i|
 					var dim;
@@ -1007,7 +1000,8 @@ WsWindow {
 		// convert to absolute page widths
 		dimsAbs = dimsAbs * (loKind == \vert).if({parBoundsRect.height},{parBoundsRect.width});
 
-		// postf( "dimensions norm:%\ndimensions abs :%\navailable free space:%\nnilSize: %\n", dimsNorm, dimsAbs, freeSpace, nilSize);
+		// postf( "dimensions norm:%\ndimensions abs :%\navailable free space:%\nnilSize: %\n",
+		// dimsNorm, dimsAbs, freeSpace, nilSize);
 
 		// place the widgets
 		nextX =	parBoundsRect.left;
@@ -1015,7 +1009,9 @@ WsWindow {
 
 		elements.do{ |elem, i|
 			var myBounds, myWidth, myHeight;
+
 			// postf("\niterating through: %, next x/y: %/%\n", elem, nextX, nextY); //debug
+
 			(elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget)).if{
 				// a widget or another layout
 				switch( loKind,
@@ -1042,7 +1038,6 @@ WsWindow {
 
 				case
 				{elem.isKindOf(WsLayout)} {
-					// "found a WsLayout to lay out: ".post; elem.postln; // debug
 					this.buildLayout(elem, myBounds);
 					elem.bounds_(myBounds); // for introspection
 				}
