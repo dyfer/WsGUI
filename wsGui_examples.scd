@@ -22,16 +22,13 @@ a.free //close ws server
 //freeAll - close all windows/servers
 WsWindow.freeAll; //use that instead of killPython
 
-//tools
-WsWindow.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
-
 /*USE ONLY IN THE LAST RESORT*/ WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. if there are some outstanding python processes); in most cases WsWindow.closeAll should be enough
 NetAddr.myIP; //from NetLib; useful for connecting external clients
 
 
 //background and a title
-a.backgroundColor_(Color.blue)
-a.backgroundColor_(Color.green)
+a.background_(Color.blue)
+a.background_(Color.green)
 a.title_("new title")
 
 // MULTIPLE WINDOWS
@@ -51,8 +48,8 @@ o.free
 a.isDefault_(false);//unset default
 
 
-a.backgroundColor_(Color.blue);
-o.backgroundColor_(Color.green); //second win
+a.background_(Color.blue);
+o.background_(Color.green); //second win
 
 
 
