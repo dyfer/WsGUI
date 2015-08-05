@@ -4,6 +4,24 @@ This software was developed with the support of the Center for Digital Arts and 
 Created by Marcin Pączkowski and Michael McCrea
 */
 
+/*
+--- TODO list: --- (updated: 2015.07.30)
+
+- create SC structure mimicking html/dom (using dictionaries) - nested or not? probably not
+	- full structure with window scroll settings etc
+	- method names etc separately from styling - both in dictionary as well as when transferring to ws/javascript
+	- I think it should follow Document Object Model (DOM) specs
+- VsView instead of VsWidget as parent
+- VsView being <div> by default?
+	- encapsulate all elements in their divs?
+- rethink wslayouts - use <div>? 
+	- chenge children's bounds to relative or something, and percentage (?)
+- Servers to separate classes
+- when updating - have a separate task (get rid of .init vs .new for widgets, control sending pace, etc) - might create more problems than solutions?
+
+--- done list: ---
+*/
+
 WsWindow {
 	var title, <isDefault, <>actionOnClose, suppressPosting, <useNexus;
 	var <wsPid, <oscPath;//, <wwwPipe;
@@ -314,16 +332,10 @@ WsWindow {
 		"Removing files and subdirectory".postln;
 
 		//rmFilesCmd
-		rmFilesCmd = "rm " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ "*").escapeChar($ );
+		rmFilesCmd = "rm -rf " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash).escapeChar($ ); //this removes both files and directory
 		// "Removing files from current directory, command: ".post; rmFilesCmd.postln;
 		rmFilesCmd.systemCmd;
-
-		//rmDirCmd
-		rmDirCmd = "rmdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
-		// "Removing subdirectory, command: ".post; rmDirCmd.postln;
-		rmDirCmd.systemCmd;
-
-		//remove directory
+		
 	}
 
 	prPrepareGlobalResponders {
@@ -451,6 +463,7 @@ WsWindow {
 		// workaround for updating checkbox value... and possibly others?
 		guiObjects[objID][0][\kind].switch(
 			\checkbox, {valueKey = \checked},
+			\slider, {valueKey = 'value-slider'},
 			{valueKey = \value} //default
 		);
 		// update value in the dictionary
@@ -560,11 +573,16 @@ WsWindow {
 		preparedDict = IdentityDictionary.new;
 		dict.keysValuesDo({|key, value, inc|
 			if(styleKeys.includes(key).not, {
-				if(key == \menuItems, {
-					preparedDict.put(key, "".ccatList(value).copyToEnd(2));
-				}, {
-					preparedDict.put(key, value);
-				});
+				switch(key,
+					\menuItems, {
+						preparedDict.put(key, "".ccatList(value).copyToEnd(2));
+					},
+					'background-color-slider', {
+						preparedDict.put(key, value.hexString); //hack for slider background
+					},	{
+						preparedDict.put(key, value);
+					}
+				);
 			});
 		});
 		styleStr = this.prepareStyleString(dict);
@@ -584,11 +602,12 @@ WsWindow {
 			cssDict.put(\top, (bounds.top * 100).asString ++ "%");
 			if(bounds.width > 0, {cssDict.put(\width, (bounds.width * 100).asString ++ "%")});
 			if(bounds.height > 0, {cssDict.put(\height, (bounds.height * 100).asString ++ "%")});
-			if((dict[\kind] == \slider) && (bounds.width < bounds.height), {
-				cssDict.put('-webkit-appearance', "slider-vertical");
-			}); //auto vertical slider
+			// if((dict[\kind] == \slider) && (bounds.width < bounds.height), {
+			// 	cssDict.put('-webkit-appearance', "slider-vertical");
+			// }); //auto vertical slider
 		};
 		dict[\backgroundColor] !? {cssDict.put('background-color', dict[\backgroundColor].hexString)};
+		// dict['background-color-slider'] !? {cssDict.put('background-color-slider', dict['background-color-slider'].hexString)};
 		dict[\textColor] !? {cssDict.put('color', dict[\textColor].hexString)};
 		dict[\font] !? {
 			dict[\font].size !? {cssDict.put('font-size', dict[\font].size.asString ++ "px")};
@@ -640,10 +659,11 @@ WsWindow {
 			//here params
 			kind.switch(
 				\slider, {
-					paramsDict.put(\min, 0);
-					paramsDict.put(\max, 1);
-					paramsDict.put(\value, spec.unmap(spec.default));
-					paramsDict.put(\step, \any);
+					// paramsDict.put(\min, 0);
+					// paramsDict.put(\max, 1);
+					// paramsDict.put('slider-value', spec.unmap(spec.default));
+					// paramsDict.put(\step, \any);
+					paramsDict.put(\vertical, (paramsDict[\bounds].width<paramsDict[\bounds].height));
 				}, //controlspec used only for slider's creation
 				\body, {
 					bodyID = id;
@@ -1182,21 +1202,34 @@ WsSlider : WsWidget {
 	}
 
 	value_ {|val|
- 		if(ws.guiObjects[id][0][\value].isNil, {
-			ws.guiObjects[id][0].put(\value, ws.guiObjects[id][2].unmap(val)); //should not unmap here
+ 		if(ws.guiObjects[id][0]['value-slider'].isNil, {
+			ws.guiObjects[id][0].put('value-slider', ws.guiObjects[id][2].unmap(val)); //should not unmap here
 		}, {
-			ws.guiObjects[id][0][\value] = ws.guiObjects[id][2].unmap(val);
+			ws.guiObjects[id][0]['value-slider'] = ws.guiObjects[id][2].unmap(val);
 		});
-		ws.updateWidget(id, \value);
+		ws.updateWidget(id, 'value-slider');
 	}
 
 	value {
-		^ws.guiObjects[id][2].map(ws.guiObjects[id][0][\value]);
+		^ws.guiObjects[id][2].map(ws.guiObjects[id][0]['value-slider']);
 	}
 
 	valueAction_ {|val|
 		this.value_(val);
 		this.action.();
+	}
+
+	background_ {|color|
+		if(ws.guiObjects[id][0]['background-color-slider'].isNil, {
+			ws.guiObjects[id][0].put('background-color-slider', color);
+		}, {
+			ws.guiObjects[id][0]['background-color-slider'] = color;
+		});
+		ws.updateWidget(id, 'background-color-slider');
+	}
+
+	background {
+		^ws.guiObjects[id][0]['background-color-slider'];
 	}
 }
 
@@ -1336,7 +1369,7 @@ WsCheckbox : WsWidget {
 			ws.guiObjects[id][0][\checked] = val;
 		});
 		// ws.guiObjects[id][0][\value] = val; //hack... since html object responds to \checked, but we store value in \value
-		ws.guiObjects[id][0][\checked] = val; //hack... since html object responds to \checked, but we store value in \value
+		ws.guiObjects[id][0][\checked] = val; 
 		ws.updateWidget(id, \checked);
 		// ^val;
 	}

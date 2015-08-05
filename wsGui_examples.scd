@@ -9,14 +9,9 @@
 
 //WebSocket interface requires 2 "servers": one to serve static content (initial website, possibly images if used), another one to manage realtime communication (websockets). The former can be substituted for a built-in or another web server. It needs to be configured to serve the "www" folder inside this class' folder. Decoder machines will use their internal apache server, configured to point to that direction
 
-<<<<<<< HEAD
-a = WsGUI.new(8000); //specify port for using internal static web server; nil when serving www folder using another web server
-a = WsGUI.new(8080); //specify port for using internal static web server; nil when serving www folder using another web server
-
-=======
 a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
->>>>>>> multipage
+
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 "http://localhost:8000".openOS
 
@@ -30,7 +25,7 @@ WsWindow.freeAll; //use that instead of killPython
 //tools
 WsWindow.setDisconnectedMessage("Waiting for connection...<br><br>Either you're trying to access the decoder's interface from an external network, or the decoder's interface is not working properly.") //set message when there's no connectino to websockets (will be useful on the decoder)
 
-/*USE ONLY IN THE LAST RESORT*/ WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. after recompiling library without closing/freeing); in most cases WsWindow.closeAll should be enough
+/*USE ONLY IN THE LAST RESORT*/ WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. if there are some outstanding python processes); in most cases WsWindow.closeAll should be enough
 NetAddr.myIP; //from NetLib; useful for connecting external clients
 
 
@@ -61,16 +56,19 @@ o.backgroundColor_(Color.green); //second win
 
 
 //alternative look - uses NexusUI
+a.free;
 a = WsWindow.new("new title", true, 8000, useNexus: true); //specify port for using internal static web server; nil when serving www folder using another web server
 a.free
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 "http://localhost:8000".openOS
 
-e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
+e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.5, 0.1)); //horizontal
+e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.5)); //vertical
 //EZSlider with control spec;
 e.controlSpec_(\freq.asSpec) //only in EZSlider;
 e.bounds(Rect(0,0,100,100))
-e.value_(0)
+e.value_(0.5)
+e.background_(Color.red)
 e.value
 e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
 e.valueAction_(2000);

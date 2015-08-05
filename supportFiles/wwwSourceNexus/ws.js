@@ -1,5 +1,34 @@
 //var wsPort = 9999; //in a separate file now, set from SC
 //var discMessage = "this will show up after loosing connection to websockets" //as above
+/*
+Nexus scratch
+creating
+var widget = nx.add(nxId, {
+						x: mousex-25,
+						y: mousey-25,
+						parent: 'nxui' 
+					})
+					globaldragid = widget.canvasID;
+					var thisname = widget.canvasID;
+					window[widget.canvasID] = widget;
+					showSettings();
+nx.add( type, settings )
+Adds a NexusUI element to the webpage. This will create an HTML5 canvas and draw the interface on it.type   string   NexusUI widget type (i.e. “dial”).
+settings   object   (Optional.) Extra settings for the new widget. This settings object may have any of the following properties: x (integer in px), y, w (width), h (height), name (widget’s OSC name and canvas ID), parent (the ID of the element you wish to add the canvas into). If no settings are provided, the element will be at default size and appended to the body of the HTML document.
+
+jQUery scratch
+ {title: "new title"}
+b = document.createElement("div")
+<div>​</div>​
+$(b).append($('<input type="range" data-vertical="true">'))
+[<div>​…​</div>​]
+$(b).trigger("create") //doesn't work here
+[<div>​…​</div>​]
+document.body.appendChild(b)
+<div>​<input type=​"range" data-vertical=​"true">​</div>​
+$(b).trigger("create")
+[<div>​…​</div>​]
+*/
 var initialMsg = true;
 var isConnected = false;
 var isChecking = false;
@@ -12,19 +41,13 @@ function checkWwwConnection(){
     req.onload = function(){
       console.log("req.status: ", req.status);
       if(req.status == 200){ //refresh if connection status is OK (200) - means the file exists
-        // console.log("no connection");
-        // staticConnection = false;
-          // }
-          // if(staticConnection) {
         isChecking = false;
         // console.log("I'm refreshing now");
         location.reload();
       }
     }
-    // var staticConnection = true;
     console.log("checking connection")
     isChecking = true;
-    // var url = document.location;
     var url = document.location + "ws.js"; //check for the ws.js file (this file) existence
     req.open('GET', url += ((/\?/).test(url) ? "&" : "?") + (new Date()).getTime(), false); //checking for server connection with a timestamp
     // req.open('GET', url += ((/\?/).test(url) ? "&" : "?"), false); //checking for server connection with a timestamp
@@ -35,21 +58,10 @@ function checkWwwConnection(){
     } catch (ex) {
     }
 
-
-
-    // }
-
-    // var headers = req.getAllResponseHeaders().toLowerCase();
-    // var status = req.status;
     // console.log(req);
     // console.log(status);
 }
 
-// function checkWwwConnection(){
-//     location.reload()
-// }
-
-// checking = setInterval( function(){checkWwwConnection()},3000); //start here
 openWS(); //start
 
 function onWsOpen() {
@@ -176,64 +188,31 @@ var addWidget = function(id, params) {
 		ws.send([id, 0]);
 	    }
 	};
-	// thisWidget.ontouchend = function(){
-	//     // if(isPressed) {
-	// 	// ws.send([id, 0]);
-	// 	isPressed = false;
-	//     // }
-	// };
-	// thisWidget.onmouseup = function(){
-	//     // if(isPressed) {
-	// 	// ws.send([id, 0]);
-	// 	isPressed = false;
-	//     // }
-	// };
-	// console.log("in case: ", thisWidget);
 	break;
     case "slider":
 	// thisWidget = document.createElement('input');
 	// thisWidget.setAttribute('type', 'range');
-	thisWidget = nx.add('slider'); //width height here? {w:90%, h:10%}
+	// thisWidget = nx.add('slider'); //width height here? {w:90%, h:10%}
 	// thisWidget.oninput = function(){ws.send([id, thisWidget.value])};
-	thisWidget.on('*', function(obj){ws.send([id, thisWidget.val.value])});
-	//sending commands here
+	// thisWidget.on('*', function(obj){ws.send([id, thisWidget.val.value])});
+	//jQueryMobile slider
+	thisWidget = document.createElement('div');
+	// thisWidget.setAttribute('class', 'ui-slider');
+	// $(thisWidget).append($('<input type="range" class="ui-hidden-accessible"  min = "0.0" max = "1.0" step = "0.0001" data-vertical="' + params.vertical + '">'))
+	// $(thisWidget).trigger("create")
+	//sending commands below
 	break;
     case "input":
 	thisWidget = document.createElement('input');
 	thisWidget.setAttribute('type', 'text');
 	// thisWidget.onclick = function(){ws.send([id, thisWidget.value])}; //not sure if we want it
 	thisWidget.oninput = function(){ws.send([id, thisWidget.value])};
+		// $(thisWidget).trigger("create")
 	//sending commands here
 	break;
     case "image":
 	thisWidget = document.createElement('img');
-	// thisWidget.onclick = function(){ws.send([id, 0])};
-	// thisWidget.onmousedown = function(){ws.send([id, 1])};
 	var isPressed = false; //to avoid multiple clicks on mousedown ontouchstart
-	// thisWidget.ontouchstart = function(){
-	//     if(!isPressed) {
-	// 	ws.send([id, 1]);
-	// 	isPressed = true;
-	//     }
-	// };
-	// thisWidget.onmousedown = function(){
-	//     if(!isPressed) {
-	// 	ws.send([id, 1]);
-	// 	isPressed = true;
-	//     }
-	// };
-	// thisWidget.ontouchend = function(){
-	//     if(isPressed) {
-	// 	ws.send([id, 0]);
-	// 	isPressed = false;
-	//     }
-	// };
-	// thisWidget.onmouseup = function(){
-	//     if(isPressed) {
-	// 	ws.send([id, 0]);
-	// 	isPressed = false;
-	//     }
-	// };
 	thisWidget.onclick = function(){ws.send([id, 0])};
 	break;
     // case "knob": //this will require additional js library probably?
@@ -267,6 +246,29 @@ var addWidget = function(id, params) {
     updateWidgetObj(thisWidget, params);
     if((kind != "body") && (kind != "title")) {
 	document.body.appendChild(thisWidget)
+    }
+    //now jQuery stuff
+    switch(kind) {
+	case 'slider': 
+	// $(b).append($('<input type="range" data-vertical="' + params.vertical + '>'));
+	// $(thisWidget).append($('<input type="range" class="ui-hidden-accessible" min = "0" max = "1" step = "0.0001" data-vertical="' + params.vertical + '">'))
+	// $(thisWidget).append($('<input type="range" class="ui-hidden-accessible"  id = "' + id + 'slider" min = "0.0" max = "1.0" step = "0.0001" data-vertical="' + params.vertical + '">'))
+	$(thisWidget).append($('<input type="range" class="ui-hidden-accessible"  min = "0.0" value = "' + params["value-slider"] + '" max = "1.0" step = "0.0001" data-vertical="' + params.vertical + '" data-theme="a" data-highlight="true">'))
+	// $(thisWidget).append($('<input type="range" class="ui-hidden-accessible"  min = "0.0" value = "' + params["value-slider"] + '" max = "1.0" step = "0.0001" sliderOrientation="horizontal" data-theme="a" data-highlight="true">')) 
+	// console.log("params.vertical: ", params.vertical)
+	// $(thisWidget).append($('<input type="range" id = "' + id + 'slider" min = "0.0" max = "1.0" step = "0.0001" data-vertical="' + params.vertical + '">'))
+	console.log("params.vertical: ", params.vertical)
+	// $(thisWidget).append($('<input type="range" class="ui-hidden-accessible">'))
+	// $(thisWidget).append($('<input type="range">'))
+	$(thisWidget).trigger("create")
+	// console.log("thisW:", thisWidget)
+	thisSlider = thisWidget.children[0].children[0]
+	$(thisSlider).on("input change", function() {
+	    ws.send([id, $(thisSlider).val()]);
+	    // console.log("test")
+	})
+	updateWidgetObj(thisWidget, params); //update once again when objects are ready.... workaround
+	break;
     }
 }
 
@@ -308,6 +310,29 @@ var updateWidgetObj = function(thisWidget, params) {
 	    } else if (key == 'checked') {
 		thisWidget.checked = parseInt(attrValue);
 		// console.log("is checked");
+	    } else if (key == 'value-slider') {
+		// console.log("slider value", attrValue);
+		// if($(thisWidget.children[0].children[0]).data("type") != null) {
+		setVal = function() {
+		    $(thisWidget.children[0].children[0]).val(attrValue)
+		    // $(thisWidget.children[0].children[0]).refresh()
+		    $(thisWidget.children[0].children[0]).slider("refresh")
+		}
+		if($(thisWidget).children().size() > 0) {
+		    setVal()
+		}//  else {//awful hack to update value later
+		//     setTimeout(setVal , 100);
+		// }
+	    } else if (key == 'background-color-slider') {
+		// console.log("slider value", attrValue);
+		setVal = function() {
+		    $(thisWidget.children[0].children[1].children[0]).css("background-color", attrValue)
+		}
+		if($(thisWidget).children().size() > 0) {
+		    setVal()
+		}//  else {//awful hack to update value later
+		//     setTimeout(function(){console.log(attrValue);setVal()} , 100);
+		// }
 	    } else {
 		thisWidget.setAttribute(key, attrValue);
 	    }
