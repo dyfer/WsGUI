@@ -23,7 +23,7 @@ Created by Marcin Pączkowski and Michael McCrea
 */
 
 WsWindow {
-	var title, <isDefault, <>actionOnClose, suppressPosting, <useNexus;
+	var title, <isDefault, <>actionOnClose, suppressPosting;
 	var <wsPid, <oscPath;//, <wwwPipe;
 	var <wsPort, <wsOscPort; //chosen automatically
 	var <wwwPath;
@@ -53,8 +53,8 @@ WsWindow {
 	classvar <redirectionHtmlFile = "index.html";
 	classvar functionAddedToShutdown = false;
 
-	*new {|title, isDefault = true, wwwPort, actionOnClose, suppressPosting = false, useNexus = false|
-		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting, useNexus).init(wwwPort);
+	*new {|title, isDefault = true, wwwPort, actionOnClose, suppressPosting = false|
+		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting).init(wwwPort);
 	}
 
 	*addToShutdown {
@@ -313,13 +313,13 @@ WsWindow {
 		var cmd, copyCmd, thisWsFile;
 
 		//symlink
-		if(useNexus, {
-			// thisWsFile = sourceWsNexusFile;
-			copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPathNexus ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
-		}, {
+		// if(useNexus, {
+		// 	// thisWsFile = sourceWsNexusFile;
+		// 	copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPathNexus ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
+		// }, {
 			// thisWsFile = sourceWsFile;
-			copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
-		});
+		copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
+		// });
 		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath.withTrailingSlash ++ thisWsFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ sourceWsFile).escapeChar($ ); //symlink - note proper linked file name regardless of the ws file used
 		// "Copying files, command: ".post; copyCmd.postln;
 		copyCmd.systemCmd;

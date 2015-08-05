@@ -55,27 +55,6 @@ a.backgroundColor_(Color.blue);
 o.backgroundColor_(Color.green); //second win
 
 
-//alternative look - uses NexusUI
-a.free;
-a = WsWindow.new("new title", true, 8000, useNexus: true); //specify port for using internal static web server; nil when serving www folder using another web server
-a.free
-//now point a web browser to http://localhost:8000 (or http://yourIP:8000)
-"http://localhost:8000".openOS
-
-e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.5, 0.1)); //horizontal
-e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.5)); //vertical
-//EZSlider with control spec;
-e.controlSpec_(\freq.asSpec) //only in EZSlider;
-e.bounds(Rect(0,0,100,100))
-e.value_(0.5)
-e.background_(Color.red)
-e.value
-e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
-e.valueAction_(2000);
-e.value
-e.remove
-
-//------------
 
 
 //button - simple
@@ -161,11 +140,15 @@ c = WsStaticText.init(a)
 c.addToPage
 
 //slider
-//not that great on a touchscreen... will need a different graphical representation eventually
-e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
+
+//------------
+e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.5, 0.1)); //horizontal
+e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.5)); //vertical - still has some issues
 //EZSlider with control spec;
 e.controlSpec_(\freq.asSpec) //only in EZSlider;
-e.value_(1000)
+e.bounds(Rect(0,0,100,100))
+e.value_(0.5)
+e.background_(Color.green) //only color styling available
 e.value
 e.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
 e.valueAction_(2000);
