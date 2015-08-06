@@ -37,7 +37,7 @@ WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWind
 WsWindow.stopWwwServer
 WsWindow.wwwPid;
 
-a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to 
+a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to
 a.free
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 
@@ -143,6 +143,7 @@ e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.5, 0.1)); //horizontal
 e = WsEZSlider.new(a, Rect(0.1, 0.3, 0.1, 0.5)); //vertical - still has some issues
 //EZSlider with control spec;
 e.controlSpec_(\freq.asSpec) //only in EZSlider;
+e.bounds // getter
 e.bounds(Rect(0,0,100,100))
 e.value_(0.5)
 e.background_(Color.green) //only color styling available
@@ -154,15 +155,16 @@ e.remove
 
 e = WsEZSlider.init(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
 e.addToPage
+e.remove
 
 //without controlSpec
-k = WsSlider.new(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
+k = WsSlider.new(a, Rect(0.1, 0.1, 0.1, 0.4)); //no styling currently available
 //add EZSlider with control spec;
 k.value_(0)
 k.value_(0.7)
 k.value
-k.action_({|sl| postf("slider value: %\n", sl.value)}) //now the actual object is passed
-// NOTE: add .valueAction_(newVal) method
+k.action_({|sl| postf("slider value: %\n", sl.value)}) // object is passed
+k.valueAction_(0.3);
 k.remove
 
 k = WsSlider.init(a, Rect(0.5, 0.3, 0.1, 0.4)); //no styling currently available
@@ -420,7 +422,7 @@ WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWind
 WsWindow.stopWwwServer
 WsWindow.wwwPid;
 
-a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to 
+a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to
 a.free
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 
