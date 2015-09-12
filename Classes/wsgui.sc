@@ -14,10 +14,13 @@ Created by Marcin Pączkowski and Michael McCrea
 - VsView instead of VsWidget as parent
 - VsView being <div> by default?
 	- encapsulate all elements in their divs?
-- rethink wslayouts - use <div>? 
+- rethink wslayouts - use <div>?
 	- chenge children's bounds to relative or something, and percentage (?)
 - Servers to separate classes
 - when updating - have a separate task (get rid of .init vs .new for widgets, control sending pace, etc) - might create more problems than solutions?
+- possible slider substitute: http://skidding.github.io/dragdealer/
+
+create 2 divs, parent and child, set class names according to instructions (.setAttribute), then create new dragdealer class passing parent
 
 --- done list: ---
 */
@@ -122,7 +125,7 @@ WsWindow {
 
 	// use this ONLY if you lost python process PID
 	// like overwriting a variable or recompiling library
-	*killPython { 
+	*killPython {
 		"killall python".unixCmd
 	}
 
@@ -335,7 +338,7 @@ WsWindow {
 		rmFilesCmd = "rm -rf " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash).escapeChar($ ); //this removes both files and directory
 		// "Removing files from current directory, command: ".post; rmFilesCmd.postln;
 		rmFilesCmd.systemCmd;
-		
+
 	}
 
 	prPrepareGlobalResponders {
@@ -966,7 +969,7 @@ WsWidget {
 	}
 
 	action_ {|function|
-		ws.guiObjects[id][1] = {function.value(this)}; 
+		ws.guiObjects[id][1] = {function.value(this)};
 	}
 
 	action {
@@ -1082,12 +1085,12 @@ WsSimpleButton : WsWidget {
 WsButton : WsWidget {
 	var <value = 0, <numStates = 0, <states;
 
-	*new {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: true).prInitAction;
+	*new {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: true).prInitAction;
 	}
 
-	*init {|wsGUI, bounds|
-		^super.new.add(wsGUI, bounds, \button, sendNow: false).prInitAction;
+	*init {|wsWindow, bounds|
+		^super.new.add(wsWindow, bounds, \button, sendNow: false).prInitAction;
 	}
 
 	// super.action_ overwrite to include incrementing the state counter in the function
@@ -1364,7 +1367,7 @@ WsCheckbox : WsWidget {
 			ws.guiObjects[id][0][\checked] = val;
 		});
 		// ws.guiObjects[id][0][\value] = val; //hack... since html object responds to \checked, but we store value in \value
-		ws.guiObjects[id][0][\checked] = val; 
+		ws.guiObjects[id][0][\checked] = val;
 		ws.updateWidget(id, \checked);
 		// ^val;
 	}

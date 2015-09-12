@@ -1,7 +1,7 @@
 TITLE:: WsImage
 summary:: Widget displaying an image in WsGUI.
 categories:: GUI>WsGUI, Extensions
-related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
 
 DESCRIPTION::
 Displays an image in WsWindow.

@@ -1,7 +1,7 @@
 TITLE:: WsSimpleButton
 summary:: A single-state button for WsGUI
 categories:: GUI>WsGUI, Extensions
-related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
 
 DESCRIPTION::
 A single-state button for WsGUI
@@ -38,8 +38,8 @@ a = WsWindow.new("new title", true, 8000);//start the window
 b = WsSimpleButton.new(a, Rect(0.5, 0, 0.2, 0.05)); //button with one "state"
 b.string_("string");
 b.font_(Font.new(\Georgia).size_(24));
-b.backgroundColor_(Color.green);
-b.textColor_(Color.red);
+b.background_(Color.green);
+b.stringColor_(Color.red);
 b.action_({"bu1".postln}); //just a function
 b.remove;
 
@@ -53,8 +53,8 @@ b.bounds_(Rect(0.3, 0.05, 0.5, 0.5)); // bounds still settable before sending to
 b.bounds;
 // now send
 b.addToPage;
-b.backgroundColor_(Color.green);
-b.textColor_(Color.red);
+b.background_(Color.green);
+b.stringColor_(Color.red);
 b.action_({"bu1".postln}); //just a function
 b.remove;
 

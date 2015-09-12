@@ -1,7 +1,7 @@
 TITLE:: WsWidget
 summary:: Superclass for widgets of WsGUI
 categories:: GUI>WsGUI, Extensions
-related:: Classes/WsWindow, Classes/WsLayout
+related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
 
 DESCRIPTION::
 As a superclass for elements of WsGUI interface, this class should not be used on its own. See subclassess for details and examples.

@@ -1,7 +1,7 @@
 TITLE:: WsCheckbox
 summary:: A WsGUI checkbox widget.
 categories:: GUI>WsGUI, Extensions
-related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
 
 DESCRIPTION::
 This widget displays a checkbox that can be checked/unchecked.
@@ -24,8 +24,12 @@ note::Currently a relative measurement is used: 1 for full window width, 1 for f
 
 returns:: an instance of the widget
 
-
 INSTANCEMETHODS::
+
+METHOD:: action
+Gets or sets function to be evaluated when the button is pressed. Function is passed the number of the current state number.
+ARGUMENT:: function
+Any object to set as default action, usually a Function. It is passed the current instance.
 
 METHOD:: value
 Sets the current state. strong::Does not:: trigger the action.

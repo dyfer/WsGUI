@@ -1,0 +1,83 @@
+TITLE:: WsInput
+summary:: A text input field for WsGUI
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
+
+DESCRIPTION::
+A text input field for WsGUI
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new instance and add it to the window immediately.
+
+METHOD:: init
+Create new instance without adding it to the window. Use this when using WsLayout.
+
+ARGUMENT:: wsWindow
+An instance of code::WsWindow::
+
+ARGUMENT:: bounds
+A code::Rect:: specifying the size of the widget.
+note::Currently a relative measurement is used: 1 for full window width, 1 for full window height, e.g. code::Rect(0, 0, 1, 1):: would occupy whole window.::
+
+returns:: an instance of the widget
+
+
+INSTANCEMETHODS::
+
+METHOD:: action
+Gets or sets function to be evaluated when the button is pressed.
+ARGUMENT:: function
+Any object to set as default action, usually a Function. It is passed the current instance.
+
+METHOD:: background
+ARGUMENT:: color
+Background color of the widget. Should be an instance of a code::Color::.
+returns:: current color
+
+METHOD:: value
+Sets the current contents of the input box. strong::Does not:: trigger the action.
+ARGUMENT:: val
+A code::String:: to set.
+
+METHOD:: valueAction
+Sets the current contents of the input box.
+ARGUMENT:: val
+A code::String:: to set.
+
+METHOD:: stringColor
+ARGUMENT:: color
+Text color of the button. Should be an instance of a code::Color::.
+returns:: current color
+
+METHOD:: font
+Change the font of the text for applicable widgets.
+ARGUMENT:: font
+An instance of code::Font::. Size and font face are supported.
+returns:: Current font.
+
+
+EXAMPLES::
+
+code::
+a = WsWindow.new("new title", true, 8000);//start the window
+"http://localhost:8000".openOS; //open in a browser
+
+//input text box
+l = WsInput.new(a, Rect(0.5, 0.3, 0.1, 0.05));
+l.value_("blah");
+l.value_(0.7);
+l.value;
+l.action_({|sl| postf("slider value: %\n", sl.value)});
+l.action = nil;
+l.stringColor_(Color.red);
+l.background_(Color.black);
+l.font_(Font.new(\Georgia).size_(16));
+l.font_(Font.new(size: 16));
+l.remove;
+l.bounds_(Rect(0.5, 0.3, 0.2, 0.1));
+
+a.free; //free the window
+::

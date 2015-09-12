@@ -258,9 +258,10 @@ var addWidget = function(id, params) {
 	// console.log("thisW:", thisWidget)
 	thisSlider = thisWidget.children[0].children[0]
 	$(thisSlider).on("input change", function() {
-	    // ws.send([id, $(thisSlider).val()]);
+	// $(thisSlider).on("changed", function() {
+	//     // ws.send([id, $(thisSlider).val()]);
 	    ws.send([id, $(document.getElementById(id).children[0].children[0]).val()]);
-	    // console.log("val: ", $(thisSlider).val())
+	    // console.log("val: ", $(document.getElementById(id).children[0].children[0]).val())
 	})
 	updateWidgetObj(thisWidget, params); //update once again when objects are ready.... workaround
 	break;

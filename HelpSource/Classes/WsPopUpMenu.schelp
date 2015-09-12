@@ -1,0 +1,100 @@
+TITLE:: WsPopUpMenu
+summary:: A pop-up menu for WsGUI
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
+
+DESCRIPTION::
+A pop-up menu for WsGUI.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Create new instance and add it to the window immediately.
+
+METHOD:: init
+Create new instance without adding it to the window. Use this when using WsLayout.
+
+ARGUMENT:: wsWindow
+An instance of code::WsWindow::
+
+ARGUMENT:: bounds
+A code::Rect:: specifying the size of the widget.
+note::Currently a relative measurement is used: 1 for full window width, 1 for full window height, e.g. code::Rect(0, 0, 1, 1):: would occupy whole window.::
+note::Because of a bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify link::#-background#background color::::
+
+returns:: an instance of the widget
+
+INSTANCEMETHODS::
+
+METHOD:: item
+Get current menu's item text (code::String::). note::Setting the item using a code::String:: is not currently implemented::
+
+METHOD:: items
+Get/set all items of the menu.
+ARGUMENT:: itemArr
+Array of strings, setting contents of the menu.
+returns:: current items
+
+METHOD:: action
+Gets or sets function to be evaluated when the the item is chosen.
+ARGUMENT:: function
+Any object to set as default action, usually a Function. It is passed the current instance.
+
+METHOD:: value
+Sets the current item. strong::Does not:: trigger the action.
+ARGUMENT:: val
+An integer setting the current menu item.
+
+METHOD:: valueAction
+Sets the current item.
+ARGUMENT:: val
+An integer setting the current menu item.
+
+METHOD:: background
+ARGUMENT:: color
+Background color of the widget. Should be an instance of a code::Color::.
+returns:: current color
+
+METHOD:: stringColor
+ARGUMENT:: color
+Text color of the widget. Should be an instance of a code::Color::.
+returns:: current color
+
+EXAMPLES::
+
+code::
+a = WsWindow.new("new title", true, 8000);//start the window
+"http://localhost:8000".openOS; //open in a browser
+
+//popup menu
+f = WsPopUpMenu.new(a, Rect(0.5, 0.5, 0.4, 0.4));
+f.items_(['-','first', 'second','A third test'])
+f.font_(Font.new(\Georgia).size_(72))
+f.background_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
+f.stringColor_(Color.red);
+f.action_({|mn| "menu val: ".post; mn.value.postln; "item: ".post; mn.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
+f.value_(1); //index
+f.item; //text
+f.item_("second"); //NOTE: not implemented
+// f.item_("second") //end up not implementing since would require iteration
+f.valueAction_(0);
+f.value;
+f.remove;
+
+f = WsPopUpMenu.init(a, Rect(0.5, 0.5, 0.4, 0.4));
+f.items_(['-','first', 'second','A third test'])
+f.font_(Font.new(\Georgia).size_(72))
+f.background_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
+f.stringColor_(Color.red);
+f.action_({|mn| "menu val: ".post; mn.value.postln; "item: ".post; mn.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
+f.addToPage;
+f.value_(1); //index
+f.item; //text
+// f.item_("second") //end up not implementing since would require iteration
+f.valueAction_(0);
+f.value;
+f.remove;
+
+a.free; //free the window
+::

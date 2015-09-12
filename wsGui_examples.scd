@@ -184,9 +184,6 @@ l.font_(Font.new(\Georgia).size_(16))
 l.font_(Font.new(size: 16))
 l.remove
 l.bounds_(Rect(0.5, 0.3, 0.2, 0.1))
-OSCFunc.trace(false)
-nil
-"sdosds".postln;
 
 //image
 //image can be placed anywhere; internally a symlink is created for each image
@@ -212,8 +209,8 @@ d.remove
 f = WsPopUpMenu.new(a, Rect(0.5, 0.5, 0.4, 0.4));
 f.items_(['-','first', 'second','A third test'])
 f.font_(Font.new(\Georgia).size_(72))
-f.backgroundColor_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
-f.textColor_(Color.red);
+f.background_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
+f.stringColor_(Color.red);
 f.action_({|mn| "menu val: ".post; mn.value.postln; "item: ".post; mn.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
 f.value_(1) //index
 f.item //text
@@ -226,8 +223,8 @@ f.remove
 f = WsPopUpMenu.init(a, Rect(0.5, 0.5, 0.4, 0.4));
 f.items_(['-','first', 'second','A third test'])
 f.font_(Font.new(\Georgia).size_(72))
-f.backgroundColor_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
-f.textColor_(Color.red);
+f.background_(Color.green); //bug or peculiarity of certain browsers - the size of the menu (and font to some extent) will not have proper height unless you specify background color...
+f.stringColor_(Color.red);
 f.action_({|mn| "menu val: ".post; mn.value.postln; "item: ".post; mn.item.postln;}) //change to pass the actual object nad obj.item text obj.value index; indexOf
 f.addToPage
 f.value_(1) //index
@@ -235,7 +232,6 @@ f.item //text
 // f.item_("second") //end up not implementing since would require iteration
 f.valueAction_(0);
 f.value
-
 f.remove
 
 //checkbox... not sure if useful when not resizable

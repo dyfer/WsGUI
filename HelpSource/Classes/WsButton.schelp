@@ -1,7 +1,7 @@
 TITLE:: WsButton
 summary:: A multi-state button for WsGUI
 categories:: GUI>WsGUI, Extensions
-related:: Classes/WsWidget, Classes/WsLayout, Classes/WsWindow
+related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
 
 DESCRIPTION::
 A multi-state button for WsGUI.
@@ -12,6 +12,7 @@ CLASSMETHODS::
 METHOD:: new
 Create new instance and add it to the window immediately.
 
+METHOD:: init
 METHOD:: init
 Create new instance without adding it to the window. Use this when using WsLayout.
 
@@ -49,11 +50,10 @@ PRIVATE:: prUpdateStringAndColors
 METHOD:: item
 returns:: Current state's text.
 
-
 METHOD:: action
-Gets or sets function to be evaluated when the button is pressed. Function is passed the number of the current state number.
+Gets or sets function to be evaluated when the button is pressed.
 ARGUMENT:: function
-Any object to set as default action, usually a Function.
+Any object to set as default action, usually a Function. It is passed the current instance.
 
 METHOD:: string
 Get/set a text content for applicable widgets.
