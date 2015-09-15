@@ -60,16 +60,16 @@ a = WsWindow.new("new title", true, 8000);//start the window
 //image can be placed anywhere; internally a symlink is created for each image
 d = WsImage.new(a, Rect(0, 0, 1, 0), PathName(Platform.helpDir).parentPath ++ "/HelpSource/images/icon.supercollider.png"); //0 for width or height will default to default image's w-h ratio
 d = WsImage.new(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
-d.path_("localFile");
+d.path_("localFile"); //provide a path
 d.path_(PathName(Platform.helpDir).parentPath ++ "/HelpSource/images/icon.supercollider.png")
-d.path_("/Library/Desktop Pictures/Earth Horizon.jpg");
-d.path_("/Library/Desktop Pictures/Foxtail Barley.jpg");
+d.path_("/Library/Desktop Pictures/Earth Horizon.jpg"); //present in OS X
+d.path_("/Library/Desktop Pictures/Foxtail Barley.jpg"); //present in OS X
 d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
 d.action_({|val| "image is clickable!".postln});
 d.remove;
 
 d = WsImage.init(a, Rect(0.2, 0.2, 0.3, 0)); //path doesn't have to be initialized
-d.path_("localFile");
+d.path_("localFile"); //provide a path
 d.path_("http://artslink.files.wordpress.com/2011/05/bfaposter.jpg", true); //when setting the path, second argument specifies wether it's a URL... (default: false) so one can use url or a local file
 d.action_({|val| "image is clickable!".postln});
 d.addToPage;
