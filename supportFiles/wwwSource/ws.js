@@ -6,7 +6,7 @@ creating
 var widget = nx.add(nxId, {
 						x: mousex-25,
 						y: mousey-25,
-						parent: 'nxui' 
+						parent: 'nxui'
 					})
 					globaldragid = widget.canvasID;
 					var thisname = widget.canvasID;
@@ -249,7 +249,7 @@ var addWidget = function(id, params) {
     }
     //now jQuery stuff
     switch(kind) {
-	case 'slider': 
+	case 'slider':
 	$(thisWidget).append($('<input type="range" class="ui-hidden-accessible"  min = "0.0" value = "' + params["value-slider"] + '" max = "1.0" step = "0.0001" data-vertical="' + params.vertical + '" data-theme="a" data-highlight="true">'))
 	console.log("params.vertical: ", params.vertical)
 	// $(thisWidget).append($('<input type="range" class="ui-hidden-accessible">'))

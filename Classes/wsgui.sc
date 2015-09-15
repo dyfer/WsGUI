@@ -1161,7 +1161,7 @@ WsStaticText : WsWidget {
 }
 
 WsImage : WsWidget {
-	var <path;
+	var <path, imgID = 0;
 
 	*new {|wsWindow, bounds, path, isURL = false|
 		^super.new.add(wsWindow, bounds, \image, sendNow: true).path_(path, isURL);
@@ -1179,7 +1179,8 @@ WsImage : WsWidget {
 			if(isURL, {
 				relPath = newPath;
 			}, {
-				relPath = ws.createImageLink(newPath, id);
+				relPath = ws.createImageLink(newPath, id.asString ++ "_" ++ imgID.asString);
+				imgID = imgID + 1;
 			});
 			ws.guiObjects[id][0].put(\src, relPath);
 			ws.updateWidget(id, \src);
