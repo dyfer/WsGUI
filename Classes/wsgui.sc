@@ -1392,7 +1392,7 @@ WsCheckbox : WsWidget {
 --------------------------------------
 */
 
-WsLayout { //}
+WsLayout {
 	// copyArgs
 	var <>bounds, <elements;
 
@@ -1402,7 +1402,11 @@ WsLayout { //}
 
 	// remove the elements within the layout
 	remove {
-		elements.do(_.remove)
+		elements.do({ |elem|
+			if( elem.isKindOf(WsLayout) or: elem.isKindOf(WsWidget), {
+				elem.remove
+			})
+		});
 	}
 }
 
