@@ -445,9 +445,13 @@ WsWindow {
 	}
 
 	interpretWsData {|hostport, data|
-		var objID, value;
-		#objID, value = data.asString.split($,);
-		objID = objID.asInteger;
+		var objID, value, commaIndex, dataString;
+		dataString = data.asString;
+		commaIndex = dataString.find(",");
+		// #objID, value = data.asString.split($,); //this is not working for values that include comma!
+		// objID = objID.asInteger;
+		objID = dataString[..(commaIndex-1)].asInteger;
+		value = dataString[(commaIndex+1)..];
 		// postf("data % from %\n", data, hostport);
 		// postf("object %, value %, from %\n", objID, value, hostport);
 		// here goes actual function triggering
