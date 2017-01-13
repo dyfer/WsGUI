@@ -40,6 +40,7 @@ WsWindow {
 	var <windowID; //for multiple windows
 	var styleKeys, numericOutputKinds;
 	var <wwwServerStartedFromWsWindow = false;
+	var <>onAddClientFunc, <>onRemoveClientFunc;
 
 	classvar <>pythonPath, <>bridgePath, <>staticServerPath, <>checkPortPath, <classPath, <classDir; //set in init...
 	classvar oscRootPath = "/sockets";
@@ -362,6 +363,7 @@ WsWindow {
 					// scSendNetAddr ?? {
 					this.addSubdirectory;
 					this.updateWsPortInFile(wsPort); //moved to OSC responder
+					this.updateWsPortInFile(wsPort); //moved to OSC responder
 					this.copyFiles;
 					"received ws port: ".post; wsPort.postln;
 				},
@@ -438,10 +440,12 @@ WsWindow {
 	addWsClient {|hostport|
 		clientDict.put(hostport, true);
 		this.prAddAllObj(hostport);
+		onAddClientFunc!? {onAddClientFunc.value(hostport)};
 	}
 
 	removeWsClient {|hostport|
-		clientDict.removeAt(hostport)
+		clientDict.removeAt(hostport);
+		onRemoveClientFunc !? {onRemoveClientFunc.value(hostport)};
 	}
 
 	interpretWsData {|hostport, data|
@@ -480,12 +484,13 @@ WsWindow {
 		// guiObjects[objID][0][\value].postln;
 		// "guiObjects[objID][0]: ".post;
 		// guiObjects[objID][0].postln;
+		// "hostport: ".post; hostport.postln;
 		// broadcast change to other clients, use hostport to avoid feedback
 		// this.prUpdateObjInAllExcept(objID, \value, hostport);
 		this.prUpdateObjInAllExcept(objID, valueKey, hostport);
 		//trigger function
 		if(guiObjects[objID].notNil, {
-			guiObjects[objID][1].value(value);
+			guiObjects[objID][1].value(value, hostport);
 		});
 	}
 
@@ -503,7 +508,7 @@ WsWindow {
 		this.prCleanup;// clean up directories first
 		// scSendNetAddr.dump;
 		scSendNetAddr.sendMsg("/quit");
-		{this.killWS}.defer(0.4); //if bridge won't close, this will kill it; also waits for any outstanding connections
+		{this.killWS}.defer(0.4); //if bridge won't close, this will kill it; also waits for any outstanding copyions
 		// this.prCleanup; //this will get called when ws bridge exits
 	}
 
@@ -619,6 +624,8 @@ WsWindow {
 		dict[\font] !? {
 			dict[\font].size !? {cssDict.put('font-size', dict[\font].size.asString ++ "px")};
 			dict[\font].name !? {cssDict.put('font-family', dict[\font].name)};
+			if(dict[\font].italic, {cssDict.put('font-style', "italic")});
+			if(dict[\font].bold, {cssDict.put('font-weight', "bold")});
 			//add text-decoration here as well - bold, italic?
 		};
 		dict[\textAlign] !? {cssDict.put('text-align', dict[\textAlign].asString)};
@@ -765,7 +772,7 @@ WsWindow {
 			this.updateWidget(bodyID);
 		});
 		// updateWidget(bodyID, \backgroundColor);
-		^color;
+		// ^color;
 	}
 
 	background {
@@ -973,7 +980,7 @@ WsWidget {
 	}
 
 	action_ {|function|
-		ws.guiObjects[id][1] = {function.value(this)};
+		ws.guiObjects[id][1] = {|val, addr|function.value(this, addr)};
 	}
 
 	action {
@@ -1055,6 +1062,7 @@ WsWidget {
 
 	string_ {|thisString|
 		thisString ?? {thisString = ""; "thisString was nil".warn};
+		thisString = thisString.asString; //convert to string
 		thisString = thisString.replace("\n", "<br>");//convert newline for html
 		thisString = thisString.replace("\t", "&nbsp;&nbsp;&nbsp;");//convert newline for html
  		if(ws.guiObjects[id][0][\innerHTML].isNil, {
@@ -1100,10 +1108,10 @@ WsButton : WsWidget {
 	// super.action_ overwrite to include incrementing the state counter in the function
 	action_ { |function|
 		var newFunction;
-		newFunction = {
+		newFunction = {|val, addr|
 			value = (value + 1) % numStates;
 			this.prUpdateStringAndColors;
-			function.value(this);
+			function.value(this, addr);
 		};
 		ws.guiObjects[id][1] = newFunction;
 	}
@@ -1141,7 +1149,7 @@ WsButton : WsWidget {
 	// assign a default action that advances the button states
 	prInitAction {
 		var defaultAction;
-		defaultAction = {
+		defaultAction = {|val, addr|
 			states !? {
 				value = (value + 1) % numStates;
 				this.prUpdateStringAndColors;
