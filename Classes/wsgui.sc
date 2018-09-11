@@ -591,6 +591,14 @@ WsWindow {
 					},
 					'background-color-slider', {
 						preparedDict.put(key, value.hexString); //hack for slider background
+					},
+					'background-blink', {
+						preparedDict.put(key,
+							[(value.first != 0).if({value.first.reciprocal * 1000},{0}),
+							value[1].hexString,
+							value[2].hexString
+							]
+						)
 					},	{
 						preparedDict.put(key, value);
 					}
@@ -781,6 +789,21 @@ WsWindow {
 		}, {
 			^nil;
 		});
+	}
+
+	backgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5))|
+		// this.background_(color0); //init
+		if(bodyID.isNil, {
+			bodyID = this.addWidget(nil, \body, {},
+				parameters: IdentityDictionary.new.put(\backgroundColor, color0));
+		});
+		if(freq == 0, {color0 = this.background});
+		if(guiObjects[bodyID][0]['background-blink'].isNil, {
+			guiObjects[bodyID][0].put('background-blink', [freq, color0, color1]);
+		}, {
+			guiObjects[bodyID][0]['background-blink'] = [freq, color0, color1];
+		});
+		this.updateWidget(bodyID);
 	}
 
 	title_ {|title|
@@ -998,6 +1021,15 @@ WsWidget {
 
 	background {
 		^ws.guiObjects[id][0][\backgroundColor];
+	}
+
+	backgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5))|
+		if(ws.guiObjects[id][0]['background-blink'].isNil, {
+			ws.guiObjects[id][0].put('background-blink', [freq, color0, color1]);
+		}, {
+			ws.guiObjects[id][0]['background-blink'] = [freq, color0, color1];
+		});
+		ws.updateWidget(id, 'background-blink');
 	}
 
 	stringColor_ {|color|

@@ -31,6 +31,12 @@ a.background_(Color.blue)
 a.background_(Color.green)
 a.title_("new title")
 
+//blinking support...
+a.backgroundBlink(20, Color.red, Color.black)
+
+a.backgroundBlink(0)
+
+
 // MULTIPLE WINDOWS
 
 WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWindow; for multiple windows manual creation/freeing is advisable to avoid problems
@@ -50,8 +56,6 @@ a.isDefault_(false);//unset default
 
 a.background_(Color.blue);
 o.background_(Color.green); //second win
-
-
 
 
 //button - simple
@@ -127,14 +131,26 @@ i.remove
 c = WsStaticText.new(a, Rect(0.5, 0.5, 0.2, 0.2));
 c.string_("My text with newline \nhere but also html <br> newline and and and and and and it also wraps long lines")
 c.font_(Font.new(\Courier).size_(16))
-c.backgroundColor_(Color.yellow); //change if you don't want the default transparent; setting transparency currently doesn't work
+c.background_(Color.yellow); //change if you don't want the default transparent; setting transparency currently doesn't work
 c.backgroundColor_(Color.white);
 c.textColor_(Color.red);
 c.textAlign_(\justify)
 c.remove
 
+c.backgroundBlink(5)
+
 c = WsStaticText.init(a)
 c.addToPage
+
+
+//text, labels
+d = WsStaticText.new(a, Rect(0.2, 0.2, 0.3, 0.3));
+// d.string_("My text with newline \nhere but also html <br> newline and and and and and and it also wraps long lines")
+d.background_(Color.yellow); //change if you don't want the default transparent; setting transparency currently doesn't work
+d.remove
+
+d.backgroundBlink(20, Color.green, Color.blue)
+
 
 //slider
 

@@ -35,6 +35,7 @@ var isChecking = false;
 var checking;
 var ws;
 var documentID;
+var blinkers = Array();
 
 function checkWwwConnection(){
   var req = new XMLHttpRequest();
@@ -76,6 +77,7 @@ function onWsClose() {
   // document.body.style.background = "#ffffff"; //white background
   // document.body.innerHTML = discMessage;
   //add styke for animation frames
+  blinkers.forEach(function(item) {clearInterval(item)})
   var css = document.createElement("style");
   css.type = "text/css";
   css.innerHTML = "@-webkit-keyframes glow { 50% {background-color: white;}}";
@@ -272,6 +274,7 @@ var removeWidget = function(id) {
   console.log("removing widget");
   var thisWidget = document.getElementById(id);
   thisWidget.parentNode.removeChild(thisWidget);
+  clearInterval(blinkers[id])
   // var kind = params.kind;
   // var id = params.id;
   // document.createElement('button');
@@ -325,8 +328,34 @@ var updateWidgetObj = function(thisWidget, params) {
         if($(thisWidget).children().size() > 0) {
           setVal()
         }
-      } else if (key == 'background-flicker') {
-        console.log("background-flicker value", attrValue);
+      } else if (key == 'background-blink') {
+        // console.log("background-flicker value", attrValue);
+        attrValue = attrValue.replace(/(\[|\])/g, "").split(",");
+        // console.log("background-flicker value", attrValue);
+        var time = eval(attrValue[0]);
+        var color0 = attrValue[1];
+        var color1 = attrValue[2];
+        // console.log("time", time);
+        // console.log("colo0", color0);
+        // console.log("thisWidget.id:", thisWidget.id);
+        var flipFlop = true;
+        function changeColor() {
+          if (flipFlop) {
+            // console.log(color1)
+            thisWidget.style.backgroundColor = color1;
+            // thisWidget.setAttribute('background-color', color1);
+            flipFlop = false;
+          } else {
+            // console.log(color0)
+            thisWidget.style.backgroundColor = color0;
+            // thisWidget.setAttribute('background-color', color0);
+            flipFlop = true;
+          }
+        }
+        clearInterval(blinkers[thisWidget.id])
+        if (time > 0) {
+          blinkers[thisWidget.id] = setInterval(changeColor, time);
+        }
         // setVal = function() {
         //     $(thisWidget.children[0].children[1].children[0]).css("background-color", attrValue)
         // }
