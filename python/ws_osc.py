@@ -69,7 +69,7 @@ print "OSC_RECEIVE:", OSC_RECEIVE
 #send through OSC:
 oscMsg = OSC.OSCMessage()
 oscMsg.setAddress(OSC_ADDR)
-oscMsg.append('oscport')        
+oscMsg.append('oscport')
 oscMsg.append(OSC_RECEIVE);
 oscClient.send(oscMsg)
 
@@ -88,7 +88,7 @@ osc_server.addMsgHandler( '/ws', main_osc_callback )
 osc_server.addMsgHandler( '/quit', quit_callback )
 
 class WsOscBridge(WebSocket):
-    
+
     def handleMessage(self):
         if self.data is None:
 			self.data = ''
@@ -96,7 +96,7 @@ class WsOscBridge(WebSocket):
         this_addr_as_string_no_slash = self.address[0] + ':' + str(self.address[1]);
         oscMsg = OSC.OSCMessage()
         oscMsg.setAddress(OSC_ADDR)
-        oscMsg.append('data')        
+        oscMsg.append('data')
         oscMsg.append(this_addr_as_string_no_slash);
         oscMsg.append(str(self.data))
         oscClient.send(oscMsg)
@@ -143,7 +143,7 @@ print "WS_PORT:", WS_PORT;
 #send through OSC:
 oscMsg = OSC.OSCMessage()
 oscMsg.setAddress(OSC_ADDR)
-oscMsg.append('wsport')        
+oscMsg.append('wsport')
 oscMsg.append(WS_PORT);
 oscClient.send(oscMsg)
 
@@ -153,7 +153,7 @@ def start_ws():
 
 def start_osc():
     osc_server.serve_forever()
-    
+
 def start_servers():
 
     Thread(target = start_ws).start()
