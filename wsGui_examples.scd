@@ -27,12 +27,13 @@ NetAddr.myIP; //from NetLib; useful for connecting external clients
 
 
 //background and a title
-a.background_(Color.blue)
+a.background_(Color.black)
 a.background_(Color.green)
 a.title_("new title")
 
 //blinking support...
-a.backgroundBlink(20, Color.red, Color.black)
+a.backgroundBlink(30, Color.red, Color.black, 0.5)
+a.backgroundBlink(10, Color.red, Color.black, 0.1)
 
 a.backgroundBlink(0)
 
@@ -137,7 +138,7 @@ c.textColor_(Color.red);
 c.textAlign_(\justify)
 c.remove
 
-c.backgroundBlink(5)
+c.backgroundBlink(12, period: 0.2)
 
 c = WsStaticText.init(a)
 c.addToPage
@@ -149,7 +150,7 @@ d = WsStaticText.new(a, Rect(0.2, 0.2, 0.3, 0.3));
 d.background_(Color.yellow); //change if you don't want the default transparent; setting transparency currently doesn't work
 d.remove
 
-d.backgroundBlink(20, Color.green, Color.blue)
+d.backgroundBlink(20, Color.green, Color.blue, 0.4)
 
 
 //slider

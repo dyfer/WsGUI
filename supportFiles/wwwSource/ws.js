@@ -335,22 +335,22 @@ var updateWidgetObj = function(thisWidget, params) {
         var time = eval(attrValue[0]);
         var color0 = attrValue[1];
         var color1 = attrValue[2];
+        var period = eval(attrValue[3]);
         // console.log("time", time);
         // console.log("colo0", color0);
         // console.log("thisWidget.id:", thisWidget.id);
-        var flipFlop = true;
+        console.log("period:", period);
+        // var flipFlop = true;
+        function changeColor1(){
+          thisWidget.style.backgroundColor = color1;
+        };
         function changeColor() {
-          if (flipFlop) {
+          // if (flipFlop) {
             // console.log(color1)
-            thisWidget.style.backgroundColor = color1;
-            // thisWidget.setAttribute('background-color', color1);
-            flipFlop = false;
-          } else {
-            // console.log(color0)
-            thisWidget.style.backgroundColor = color0;
-            // thisWidget.setAttribute('background-color', color0);
-            flipFlop = true;
-          }
+          thisWidget.style.backgroundColor = color0;
+          // thisWidget.setAttribute('background-color', color1);
+          setTimeout(changeColor1, time * period);
+          // flipFlop = false;
         }
         clearInterval(blinkers[thisWidget.id])
         if (time > 0) {

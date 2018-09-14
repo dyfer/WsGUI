@@ -596,7 +596,8 @@ WsWindow {
 						preparedDict.put(key,
 							[(value.first != 0).if({value.first.reciprocal * 1000},{0}),
 							value[1].hexString,
-							value[2].hexString
+							value[2].hexString,
+							value[3]
 							]
 						)
 					},	{
@@ -791,7 +792,7 @@ WsWindow {
 		});
 	}
 
-	backgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5))|
+	backgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5)), period = 0.5|
 		// this.background_(color0); //init
 		if(bodyID.isNil, {
 			bodyID = this.addWidget(nil, \body, {},
@@ -799,9 +800,9 @@ WsWindow {
 		});
 		if(freq == 0, {color0 = this.background});
 		if(guiObjects[bodyID][0]['background-blink'].isNil, {
-			guiObjects[bodyID][0].put('background-blink', [freq, color0, color1]);
+			guiObjects[bodyID][0].put('background-blink', [freq, color0, color1, period]);
 		}, {
-			guiObjects[bodyID][0]['background-blink'] = [freq, color0, color1];
+			guiObjects[bodyID][0]['background-blink'] = [freq, color0, color1, period];
 		});
 		this.updateWidget(bodyID);
 	}
@@ -1023,11 +1024,11 @@ WsWidget {
 		^ws.guiObjects[id][0][\backgroundColor];
 	}
 
-	backgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5))|
+	backgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5)), period = 0.5|
 		if(ws.guiObjects[id][0]['background-blink'].isNil, {
-			ws.guiObjects[id][0].put('background-blink', [freq, color0, color1]);
+			ws.guiObjects[id][0].put('background-blink', [freq, color0, color1, period]);
 		}, {
-			ws.guiObjects[id][0]['background-blink'] = [freq, color0, color1];
+			ws.guiObjects[id][0]['background-blink'] = [freq, color0, color1, period];
 		});
 		ws.updateWidget(id, 'background-blink');
 	}
