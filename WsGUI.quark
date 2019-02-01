@@ -1,0 +1,12 @@
+(
+          name: "WsGUI",
+       summary: "GUI in a web browser",
+        author: "Marcin Pączkowski",
+     copyright: "Marcin Pączkowski, 2014-2019",
+       license: "GPL v3",
+       version: "0.1",
+        schelp: "WsWindow",
+           url: "https://github.com/dyfer/wsGUI.quark",
+  isCompatible: true ,
+         since: ""
+)
