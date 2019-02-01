@@ -45,14 +45,14 @@ WsWindow {
 	classvar <>pythonPath, <>bridgePath, <>staticServerPath, <>checkPortPath, <classPath, <classDir; //set in init...
 	classvar oscRootPath = "/sockets";
 	classvar currentWindowID;
-	classvar <>globalWwwPath = "www"; //relative to class
-	classvar <>jsFilename = "wsport.js"; //relative to class
+	classvar <>globalWwwPath = "../www"; //relative to class
+	classvar <>jsFilename = "wsport.js"; //relative to www
 	classvar <>discMsgFile = "discMessage.js";
 	classvar <wwwPid, <wwwPort;
 	classvar <allWsWindows;// = IdentityDictionary.new;
-	classvar <sourceWwwPath = "supportFiles/wwwSource";
-	classvar <sourceWwwPathNexus = "supportFiles/wwwSourceNexus";
-	classvar <defaultWwwPath = "supportFiles/wwwDefault";
+	classvar <sourceWwwPath = "../supportFiles/wwwSource";
+	classvar <sourceWwwPathNexus = "../supportFiles/wwwSourceNexus";
+	classvar <defaultWwwPath = "../supportFiles/wwwDefault";
 	classvar <redirectionAddrFile = "whereto.js";
 	classvar <redirectionHtmlFile = "index.html";
 	classvar functionAddedToShutdown = false;
@@ -78,7 +78,7 @@ WsWindow {
 			rootPath = rootPath.standardizePath;
 		}, {
 			if(rootPath[0] != "/", {//it's relative to the class file
-				rootPath = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ rootPath;
+				rootPath = File.realpath(this.class.filenameSymbol).dirname +/+ rootPath;
 			});
 		});
 		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
@@ -134,9 +134,9 @@ WsWindow {
 		pythonPath ?? {pythonPath = "python"};
 		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
 		classDir ?? {classDir = classPath.dirname};
-		bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
-		checkPortPath ?? {checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ )};
-		staticServerPath ?? {staticServerPath = (classPath.dirname ++ "/python/simplehttpserver.py").escapeChar($ )};
+		bridgePath ?? {bridgePath = (classPath.dirname ++ "/../python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
+		checkPortPath ?? {checkPortPath = (classPath.dirname ++ "/../python/checkport.py").escapeChar($ )};
+		staticServerPath ?? {staticServerPath = (classPath.dirname ++ "/../python/simplehttpserver.py").escapeChar($ )};
 	}
 
 	init {|wwwPortArg|
@@ -177,7 +177,7 @@ WsWindow {
 			};
 
 			//path
-			wwwPath = globalWwwPath ++ "/" ++ windowID.asString;
+			wwwPath = globalWwwPath +/+ windowID.asString;
 			// this.addSubdirectory; //moved to OSC responder
 			if(isDefault, {
 				this.isDefault_(isDefault)
@@ -205,7 +205,7 @@ WsWindow {
 			path = path.standardizePath;
 		}, {
 			if(path[0] != "/", {//it's relative to the class file
-				path = File.realpath(this.class.filenameSymbol).dirname ++ "/" ++ path;
+				path = File.realpath(this.class.filenameSymbol).dirname +/+ path;
 			});
 		});
 		filePath = path.withTrailingSlash ++ filename;
