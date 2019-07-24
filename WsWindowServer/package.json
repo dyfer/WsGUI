@@ -1,0 +1,30 @@
+{
+  "name": "nodeserver",
+  "version": "1.0.0",
+  "description": "Serves SuperCollider GUIs using WebSockets",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dyfer/wsGUI.quark.git"
+  },
+  "keywords": [
+    "SuperCollider",
+    "GUI",
+    "websocket"
+  ],
+  "author": "Marcin Pączkowski",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dyfer/wsGUI.quark/issues"
+  },
+  "homepage": "https://github.com/dyfer/wsGUI.quark#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-ws": "^4.0.0",
+    "osc-js": "^2.0.3",
+    "ws": "^7.1.1"
+  }
+}
