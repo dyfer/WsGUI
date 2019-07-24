@@ -9,8 +9,38 @@
 
 //WebSocket interface requires 2 "servers": one to serve static content (initial website, possibly images if used), another one to manage realtime communication (websockets). The former can be substituted for a built-in or another web server. It needs to be configured to serve the "www" folder inside this class' folder. Decoder machines will use their internal apache server, configured to point to that direction
 
-a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
+
+i = WsWindowUniqueID()
+i.next
+i.id
+
+OSCFunc.trace
+
+a = WsWindow.new("first", 8000, true); //specify port for using internal static web server; nil when serving www folder using another web server
+
 a.free
+a.wsWindowServer.printSentMessages_(true)
+a.wsWindowServer.pid
+a.wsWindowServer.messageQueueIsEmpty
+a.windowID.asString.size
+a.responders
+a.oscPath
+
+b = WsWindow.new("second", 8000);
+b = WsWindow.new("", 8000);
+b.responders
+
+b.free;
+
+b.wsWindowServer.sendMsg("/setRedirect")
+b.wsWindowServer.sendMsg("/setRedirect", "first")
+a.wsWindowServer.sendMsg("/setRedirect", "first")
+
+a.isDefault_(false)
+
+NetAddr("localhost", 55187).sendMsg("/setRedirect")
+
+"/usr/local/bin/node --help".unixCmd({|err| err.postln})
 
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 "http://localhost:8000".openOS
@@ -20,9 +50,8 @@ a.clear //remove all elements, don't close server (can add new elements)
 a.free //close ws server
 
 //freeAll - close all windows/servers
-WsWindow.freeAll; //use that instead of killPython
+WsWindow.freeAll; //
 
-/*USE ONLY IN THE LAST RESORT*/ WsWindow.killPython //if something hangs... use only if no clear shutdown is possible (e.g. if there are some outstanding python processes); in most cases WsWindow.closeAll should be enough
 NetAddr.myIP; //from NetLib; useful for connecting external clients
 
 
@@ -30,6 +59,8 @@ NetAddr.myIP; //from NetLib; useful for connecting external clients
 a.background_(Color.black)
 a.background_(Color.green)
 a.title_("new title")
+a.title
+
 
 //blinking support...
 a.backgroundBlink(30, Color.red, Color.black, 0.5)
@@ -44,16 +75,18 @@ WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWind
 WsWindow.stopWwwServer
 WsWindow.wwwPid;
 
-a = WsWindow.new("new title", true); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to
+a = WsWindow.new("new title", 8000, false); //when no port is specified, no www server will be started, NOR ONE WILL BE STOPPED WHEN FREEING this the need to
 a.free
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 
-o = WsWindow.new("different title", false); //second win!
+o = WsWindow.new("different title", 8000); //second win!
 o.free
 
 
 a.isDefault_(false);//unset default
+a.isDefault_(true);//unset default
 
+o.isDefault_(false);//unset default
 
 a.background_(Color.blue);
 o.background_(Color.green); //second win
@@ -275,7 +308,7 @@ a.free
 // LAYOUTS
 
 // WsGUI.killPython // if needed... shouldn't be.
-a = WsWindow.new("title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
+a = WsWindow.new("title", 8000, true); //specify port for using internal static web server; nil when serving www folder using another web server
 
 "http://localhost:8000".openOS;
 a.free
@@ -517,6 +550,9 @@ h.remove
 //testing reliability
 e = WsSlider.new(a, Rect(0.1, 0.3, 0.1, 0.4)); //no styling currently available
 h = WsSlider.new(a, Rect(0.3, 0.3, 0.1, 0.4));
+
+a = NetAddr("localhost", 62327);
+
 (
 Routine.run({
 	1000.do({
@@ -527,7 +563,7 @@ Routine.run({
 })
 )
 
-(
+(W
 Routine.run({
 	1000.do({
 		a.sendMsg('192.168.200.103:50449', '{"command":"update", "value":"' ++ 1.0.rand.asSymbol ++ '", "id":"0"}');
@@ -637,3 +673,23 @@ document.getElementById(id).value = "dupa";
 }
 </script>
 </body>
+
+NetAddr("localhost", 62491).sendMsg("/add", "first")
+
+NetAddr("localhost", 8000).sendMsg("/remove", 'first')
+
+NetAddr("localhost", 8000).sendMsg("/add", "second")
+
+OSCFunc.trace
+
+WsWindowServer.runInTerminal_(false)
+// x = WsWindowServer(8010)
+w = WsWindowServer(8000)
+w.scSendNetAddr
+w.nodePath
+w.sendMsg("/add", "first")
+WsWindowServer.nodePath.size
+w.free
+List
+ShutDown.objects.last.def.code
+ShutDown.objects.last.def.dump
