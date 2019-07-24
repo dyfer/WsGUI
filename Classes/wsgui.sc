@@ -474,6 +474,7 @@ WsWindow {
 				},
 				\image, {
 					//link for image
+					//should be already defined
 					// paramsDict[\src] !? {
 					// var relPath = this.serveImage(paramsDict[\src], id);
 					// paramsDict[\src] = relPath;
@@ -1010,8 +1011,8 @@ WsImage : WsWidget {
 			if(isURL, {
 				relPath = newPath;
 			}, {
-				relPath = ws.serveImage(newPath, id);
-				// imgID = imgID + 1;
+				relPath = ws.serveImage(newPath, imgID);
+				imgID = imgID + 1;
 			});
 			ws.guiObjects[id][0].put(\src, relPath);
 			ws.updateWidget(id, \src);
