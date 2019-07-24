@@ -26,137 +26,55 @@ create 2 divs, parent and child, set class names according to instructions (.set
 */
 
 WsWindow {
-	var title, <isDefault, <>actionOnClose, suppressPosting;
+	var title, <isDefault, <suppressPosting;
 	var <wsPid, <oscPath;//, <wwwPipe;
 	var <wsPort, <wsOscPort; //chosen automatically
-	var <wwwPath;
-	var <scSendNetAddr, <socketsResponder, <clientDict;//, <guiObjDict
+	var <scSendNetAddr, <responders, <clientDict;//
 	var <guiObjects; //guiObjects: name -> [widgetParams, function, controlSpec]
 	var <namesToIDs;
 	var	<numClients;
 	var <bodyID; //this will be id of the object referring to the body, when the background is first set;
 	var <titleID; //this will be id of the object referring to the title, when the background is first set;
-	var <curWidgetID = 0;
+	// var <curWidgetID = 0;
 	var <windowID; //for multiple windows
 	var styleKeys, numericOutputKinds;
-	var <wwwServerStartedFromWsWindow = false;
+	// var <wwwServerStartedFromWsWindow = false;
 	var <>onAddClientFunc, <>onRemoveClientFunc;
+	var <wsWindowServer;
+	var <uniqueID;
+	var <>onClose;
+	var serverShutdownFunction;
+	var <backgroundIsBlinking = false;
 
-	classvar <>pythonPath, <>bridgePath, <>staticServerPath, <>checkPortPath, <classPath, <classDir; //set in init...
-	classvar oscRootPath = "/sockets";
-	classvar currentWindowID;
-	classvar <>globalWwwPath = "../www"; //relative to class
-	classvar <>jsFilename = "wsport.js"; //relative to www
-	classvar <>discMsgFile = "discMessage.js";
-	classvar <wwwPid, <wwwPort;
+	classvar <oscRootPath = "/sockets";
 	classvar <allWsWindows;// = IdentityDictionary.new;
-	classvar <sourceWwwPath = "../supportFiles/wwwSource";
-	classvar <sourceWwwPathNexus = "../supportFiles/wwwSourceNexus";
-	classvar <defaultWwwPath = "../supportFiles/wwwDefault";
-	classvar <redirectionAddrFile = "whereto.js";
-	classvar <redirectionHtmlFile = "index.html";
 	classvar functionAddedToShutdown = false;
 
-	*new {|title, isDefault = true, wwwPort, actionOnClose, suppressPosting = false|
-		^super.newCopyArgs(title, isDefault, actionOnClose, suppressPosting).init(wwwPort);
+	*new {|title, wwwPort, isDefault = true, suppressPosting = false|
+		^super.newCopyArgs(title, isDefault, suppressPosting).init(wwwPort);
 	}
 
-	*addToShutdown {
-		if(functionAddedToShutdown.not, {
-			ShutDown.objects = ShutDown.objects.add({WsWindow.freeAll});
-			functionAddedToShutdown = true;
-		});
-	}
-
-	*startWwwServer {arg port = 8000, suppressPosting = false;
-		var rootPath = globalWwwPath;
-		var cmd;
-		this.setClassVars; //set that first
-		this.addToShutdown;
-		wwwPort = port; //set classvar
-		if(rootPath[0] == "~", {//it's relative to home directory
-			rootPath = rootPath.standardizePath;
-		}, {
-			if(rootPath[0] != "/", {//it's relative to the class file
-				rootPath = File.realpath(this.class.filenameSymbol).dirname +/+ rootPath;
-			});
-		});
-		rootPath = rootPath.withoutTrailingSlash.escapeChar($ );
-		postf("Starting www server, root path: %\n", rootPath);
-		// cmd = "pushd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port ++ "; popd";
-		// cmd = "cd " ++ rootPath ++ "; exec python -m SimpleHTTPServer " ++ port;
-		// staticServerPath
-		cmd = "exec" + pythonPath + "-u" + staticServerPath + port.asString + rootPath; //-u makes posting possible (makes stdout unbuffered)
-		// "wwwPid: ".post; wwwPid.postln;
-		// "class: ".post; wwwPid.class.postln;
-		// "wwwPort: ".post; wwwPort.postln;
-		if(wwwPid.isNil, {
-			// if(this.checkWwwPort, {
-			wwwPid = cmd.unixCmd({
-				"Python static www server stopped!".postln;
-				wwwPid = nil;
-				// this.killWS;
-			}, postOutput: suppressPosting.not);
-		}, {
-			("WWW server at port " ++ wwwPort.asString ++ " seems already running, new server NOT started, continuing...").warn;
-			// wwwPort = nil; // clear classvar - why?
-		});
-	}
-
-	*stopWwwServer {
-		if(wwwPid.notNil, {
-			postf("Stopping www server, pid %\n", wwwPid);
-			("kill" + wwwPid).unixCmd;
-		}, {
-			"Www server not running, nothing to kill".postln;
-		});
-	}
-
-	// *checkWwwPort {
-	// 	this.setClassVars;
-	// 	^(("exec" + pythonPath + checkPortPath + wwwPort.asString + "TCP").unixCmdGetStdOut.asInteger > 0);
-	// }
 
 	*freeAll {
 		WsWindow.allWsWindows.keys.do({|thisKey|
 			WsWindow.allWsWindows[thisKey].free;
 		});
-		this.stopWwwServer;
+		// this.stopWwwServer;
 	}
 
-	// use this ONLY if you lost python process PID
-	// like overwriting a variable or recompiling library
-	*killPython {
-		"killall python".unixCmd
-	}
-
-	*setClassVars {
-		pythonPath ?? {pythonPath = "python"};
-		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
-		classDir ?? {classDir = classPath.dirname};
-		bridgePath ?? {bridgePath = (classPath.dirname ++ "/../python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
-		checkPortPath ?? {checkPortPath = (classPath.dirname ++ "/../python/checkport.py").escapeChar($ )};
-		staticServerPath ?? {staticServerPath = (classPath.dirname ++ "/../python/simplehttpserver.py").escapeChar($ )};
-	}
 
 	init {|wwwPortArg|
 		allWsWindows ?? {allWsWindows = IdentityDictionary.new}; //create dictionary with all members if not already done
 		//first check if the name is valid
-		title ?? {title = "default"};
+		title ?? {title = ""};
 		windowID = title.replace(" ", "").asSymbol;
+		responders = List();
 		if(allWsWindows[windowID].notNil, {
 			Error("WsWindow with name \"" ++ title ++ "\" already exists. Please use other title or remove existing WsWindow").throw;
 		}, {
 			allWsWindows[windowID] = this;
 
-			actionOnClose ?? {actionOnClose = {}};
-			WsWindow.setClassVars;
-			WsWindow.addToShutdown;
-			// pythonPath ?? {pythonPath = "python"};
-			// classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
-			// classDir ?? {classDir = classPath.dirname};
-			// bridgePath ?? {bridgePath = (classPath.dirname ++ "/python/ws_osc.py").escapeChar($ )}; //remember to escape!!!
-			// checkPortPath = (classPath.dirname ++ "/python/checkport.py").escapeChar($ );
+			uniqueID = WsWindowUniqueID();
 
 			//init vars
 			guiObjects = IdentityDictionary.new(know: true);
@@ -165,222 +83,82 @@ WsWindow {
 			styleKeys = [\bounds, \color, \backgroundColor, \textColor, \font, \textAlign, \css]; //this are all symbols that should not be intepreted as object parameters, but rather as stylig (CSS) elements; custom css string can be added under \css key
 			numericOutputKinds = [\slider, \checkbox];
 
-			//check www server, start if port is available
-			wwwPortArg !? {
-				// if(this.checkWwwPort, {
-				// 	this.startWwwServer(wwwPort)
-				// }, {
-				// 	Error("WsWindow: can't bind to port" + wwwPort.asString ++". Please use a different port or terminate the process using it, close any browser windows pointing to that port and wait").throw;
-				// })
-				WsWindow.startWwwServer(wwwPortArg);
-				wwwServerStartedFromWsWindow = true;
-			};
+			if(wwwPortArg.isKindOf(SimpleNumber).not, {
+				Error("You need to pass port number as the second argument to the WsWindow").throw;
+			}, {
+				wsWindowServer = WsWindowServer.allWsWindowServers[wwwPortArg]; //first try to use an existing server
+				wsWindowServer ?? {wsWindowServer = WsWindowServer(wwwPortArg, suppressPosting)}; //if nil, that means we need to create a new one
+				// add ourselves to the list of windows
+				wsWindowServer.allWsWindows.add(this);
+				//add error message - we're freeing all WsWindows on server close, so this is not needed
+				// serverShutdownFunction = {Error("WsWindowServer shut down by itself. Please free associated WsWindows").throw};
+				// wsWindowServer.doOnShutDown ?? {
+				// wsWindowServer.doOnShutDown_(serverShutdownFunction)
+			// };
+			});
 
 			//path
-			wwwPath = globalWwwPath +/+ windowID.asString;
-			// this.addSubdirectory; //moved to OSC responder
-			if(isDefault, {
-				this.isDefault_(isDefault)
+			oscPath = wsWindowServer.thisOscRootPath ++ "/window";
+			if(windowID.asString.size != 0, {
+				oscPath = oscPath ++ "/" ++ windowID
 			});
-			// this.setDefaultRedirectionAddress; //now figure out the address
-
-			// this.getPorts; //get next free port for osc communication
-			// this.updateWsPortInFile(wsPort); //moved to OSC responder
-
-			//important - create individual path for osc messages
-			// oscPath = oscRootPath ++ "/" ++ wsPort.asString;
-			oscPath = oscRootPath ++ "/" ++ windowID.asString;
-			"oscPath: ".post; oscPath.postln;
-			this.startBridge; //to give time
-			// guiObjects[titleID][0][\title] = title;//workaround so it's available right away
-			{this.title_(title)}.defer(1); //awful hack for now to solve possible timing problems
+			// "oscPath: ".post; oscPath.postln;
+			//prepare responders
+			this.prPrepareGlobalResponders;
+			// add the window on the server
+			wsWindowServer.sendMsg("/add", windowID);
+			this.isDefault_(isDefault);
+			this.title_(title);
 		});
-	}
-
-	updateWsPortInFile {arg port = 80000;
-		var path = wwwPath; //www path
-		var filename = jsFilename;
-		var fileContentsArray, filePath;
-		if(path[0] == "~", {//it's relative to home directory
-			path = path.standardizePath;
-		}, {
-			if(path[0] != "/", {//it's relative to the class file
-				path = File.realpath(this.class.filenameSymbol).dirname +/+ path;
-			});
-		});
-		filePath = path.withTrailingSlash ++ filename;
-		"Writing ws port number to the file at ".post; filePath.postln;
-		File.use(filePath, "w", {|file|
-			// fileContentsArray.do({|thisLine, lineNumber|
-			file.write("var wsPort = " ++ port.asString ++ ";")
-			// });
-		});
-		"Writing done.".postln;
-	}
-
-	setDefaultRedirectionAddress {//address relative to globalWwwPath
-		var address = wwwPath.asRelativePath(globalWwwPath); //this should just give us relative path
-		var filePath;
-		filePath = classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile;
-		"Writing destination address to the file at ".post; filePath.postln;
-		File.use(filePath, "w", {|file|
-			file.write("var destination = \"" ++ address.asString ++ "\";")
-		});
-		"Writing done.".postln;
-	}
-
-	setAsDefault {
-		var copyCmd;
-		"Setting as default, copying/writing files".postln;
-		//set the variable
-		this.setDefaultRedirectionAddress;
-		//copy index
-		copyCmd = "cp " ++ (classDir.withTrailingSlash ++ defaultWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ globalWwwPath).escapeChar($ );
-		// "copying index.html, command: ".post; copyCmd.postln;
-		copyCmd.systemCmd;
-
-		isDefault = true; //set the var
-
-	}
-
-	unsetAsDefault{
-		var rm1cmd, rm2cmd;
-		//remove both files
-		"Removing files for redirection".postln;
-		rm1cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionHtmlFile).escapeChar($ );
-		// "rm1cmd: ".post; rm1cmd.postln;
-		rm1cmd.systemCmd;
-		rm2cmd = "rm " ++  (classDir.withTrailingSlash ++ globalWwwPath.withTrailingSlash ++ redirectionAddrFile).escapeChar($ );
-		// "rm2cmd: ".post; rm2cmd.postln;
-		rm2cmd.systemCmd;
-
-		isDefault = false; //set the var
 	}
 
 	isDefault_ {|val = false|
 		if(val, {
-			"removing other defaults".postln;
-			allWsWindows.do({|thisWindow|
-				if(thisWindow.windowID != windowID, {
-					thisWindow.isDefault = false;
-				});
-			});
-			this.setAsDefault;
+			this.wsWindowServer.sendMsg("/setRedirect", windowID)
 		}, {
-			this.unsetAsDefault;
+			this.wsWindowServer.sendMsg("/setRedirect")
 		});
 	}
 
-	// getPorts { //moved to prPrepareGlobalResponders
-	// 	// wsPort = ("exec" + pythonPath + checkPortPath + "0 TCP").unixCmdGetStdOut.asInteger; moved to the responder!
-	// 	// wsOscPort = ("exec" + pythonPath + checkPortPath + "0 UDP").unixCmdGetStdOut.asInteger;
-	// }
-
-	startBridge {
-		var cmd;
-		this.prPrepareGlobalResponders; //first, so we're ready
-		//starting python socket bridge
-		//usage: python ws_osc.py SC_OSC_port, ws_OSC_port, oscPath, ws_port
-		cmd = "exec" + pythonPath + "-u" + bridgePath + NetAddr.langPort + wsOscPort + oscPath + wsPort; //-u makes posting possible (makes stdout unbuffered)
-		"websocket server cmd: ".post; cmd.postln;
-		wsPid = cmd.unixCmd({|code, exPid|
-			("WebSocket server stopped, exit code: " ++ code ++ "; cleaning up").postln;
-			wsPid = nil;
-			// this.killWWW;
-			//stop www server only if it was started with this window instance:
-			"wwwServerStartedFromWsWindow: ".post; wwwServerStartedFromWsWindow.postln;
-			if(wwwServerStartedFromWsWindow, {
-				// for future - check if there are no other WsWindows using the server...
-				WsWindow.stopWwwServer;
-			});
-			// this.prCleanup; //should be done first using .free
-		}, suppressPosting.not);
-
-		// this.prPrepareGlobalResponders; //needs to be done after starting node, so node doesn't end up binding to osc receive port
-
-		//prepare send port
-		// scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
-	}
-
-	addSubdirectory {
-		var cmd, copyCmd;
-		"Creating subdirectory and copying files".postln;
-		//mkdir
-		cmd = "mkdir " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ );
-		// "Creading subdirectory, command: ".post; cmd.postln;
-		cmd.systemCmd;
-	}
-
-	//add linking depending wether it's using nexus or not
-
-	copyFiles {
-		var cmd, copyCmd, thisWsFile;
-
-		//symlink
-		// if(useNexus, {
-		// 	// thisWsFile = sourceWsNexusFile;
-		// 	copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPathNexus ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
-		// }, {
-			// thisWsFile = sourceWsFile;
-		copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath ++ "/*").escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath).escapeChar($ ); //symlinks
-		// });
-		// copyCmd = "ln -s " ++ (classDir.withTrailingSlash ++ sourceWwwPath.withTrailingSlash ++ thisWsFile).escapeChar($ ) ++ " " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ sourceWsFile).escapeChar($ ); //symlink - note proper linked file name regardless of the ws file used
-		// "Copying files, command: ".post; copyCmd.postln;
-		copyCmd.systemCmd;
-	}
-
-	removeSubdirectory {
-		var rmFilesCmd, rmDirCmd, rmWsJs;
-		//remove all files - or just known files?
-		//all for now
-		"Removing files and subdirectory".postln;
-
-		//rmFilesCmd
-		rmFilesCmd = "rm -rf " ++ (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash).escapeChar($ ); //this removes both files and directory
-		// "Removing files from current directory, command: ".post; rmFilesCmd.postln;
-		rmFilesCmd.systemCmd;
-
-	}
-
 	prPrepareGlobalResponders {
-		socketsResponder = OSCdef(oscPath, {|msg, time, addr, recvPort|
-			var command, hostport, data;
-			//command is either 'add', 'remove', 'data' or 'wsport' (for initial websocket port setting)
-			#command, hostport, data= msg[[1, 2, 3]];
-			command = command.asSymbol;
-			hostport = hostport.asSymbol;
-			// postf("command: %\n", command);
-			// postf("Message from %\n", hostport);
-			// postf("Data: %\n", data);
-			// postf("Data present: %\n", dataPresent.asBoolean);
-			// msg.postln;
-			command.switch(
-				\add, {this.addWsClient(hostport)},
-				\remove, {this.removeWsClient(hostport)},
-				\data, {this.interpretWsData(hostport, data)},
-				\wsport, {
-					wsPort = hostport.asInteger; //2nd argument
-					// scSendNetAddr ?? {
-					this.addSubdirectory;
-					this.updateWsPortInFile(wsPort); //moved to OSC responder
-					this.updateWsPortInFile(wsPort); //moved to OSC responder
-					this.copyFiles;
-					"received ws port: ".post; wsPort.postln;
-				},
-				\oscport,{
-					wsOscPort = hostport.asInteger; //2nd argument
-					scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
-				}
-			);
-		}, oscPath);
+		responders.add(
+			OSCFunc({|msg, time, addr, recvPort|
+				var command, hostport, data;
+				//command is either 'add', 'remove', 'data' or 'wsport' (for initial websocket port setting)
+				#command, hostport, data= msg[[1, 2, 3]];
+				command = command.asSymbol;
+				hostport = hostport.asSymbol;
+				// postf("command: %\n", command);
+				// postf("Message from %\n", hostport);
+				// postf("Data: %\n", data);
+				// postf("Data present: %\n", dataPresent.asBoolean);
+				// msg.postln;
+				command.switch(
+					\add, {this.addWsClient(hostport)},
+					\remove, {this.removeWsClient(hostport)},
+					\data, {this.interpretWsData(hostport, data)},
+					\wsport, {
+						wsPort = hostport.asInteger; //2nd argument
+						// scSendNetAddr ?? {
+						this.addSubdirectory;
+						this.updateWsPortInFile(wsPort); //moved to OSC responder
+						this.updateWsPortInFile(wsPort); //moved to OSC responder
+						this.copyFiles;
+						"received ws port: ".post; wsPort.postln;
+					},
+					// \oscport,{
+					// 	wsOscPort = hostport.asInteger; //2nd argument
+					// 	scSendNetAddr = NetAddr("localhost", wsOscPort); //moved to the responder
+					// 	"received OSC port: ".post; wsOscPort.postln;
+					// }
+				);
+			}, oscPath.asSymbol);
+		);
 	}
 
 	sendMsg {|dest, msg|
 		// "Sending from SC: ".post; [dest, msg].postln;
-		if(scSendNetAddr.notNil, { //just in case
-			scSendNetAddr.sendMsg(dest, msg);
-		});
-		// scSendNetAddr.sendBundle(0, dest, msg);
+		wsWindowServer.sendMsg(dest, msg);
 	}
 
 	sendMsgToAll {|msg|
@@ -494,22 +272,23 @@ WsWindow {
 		});
 	}
 
-	killWS {
-		if(wsPid.notNil, {
-			postf("Killing ws_osc server, pid %\n", wsPid);
-			("kill" + wsPid).unixCmd;
-		}, {
-			// "Bridge not running, nothing to kill".postln;
-		});
-	}
-
 	free {
 		"Freeing WsWindow titled ".post; title.postln;
 		this.prCleanup;// clean up directories first
-		// scSendNetAddr.dump;
-		scSendNetAddr.sendMsg("/quit");
-		{this.killWS}.defer(0.4); //if bridge won't close, this will kill it; also waits for any outstanding copyions
-		// this.prCleanup; //this will get called when ws bridge exits
+		// remove window from the server
+		wsWindowServer.sendMsg("/remove", windowID);
+		// remove ourselves from the window Set
+		wsWindowServer.allWsWindows.remove(this);
+		// also this se
+		allWsWindows.removeAt(windowID);
+		//free if we're the last window
+		if(wsWindowServer.allWsWindows.size == 0, {
+			// "This was the last WsWindow on this WsWindowServer, freeing the server".postln;
+			// if(wsWindowServer.doOnShutDown == serverShutdownFunction, {
+			// wsWindowServer.doOnShutDown_(nil);
+		// });
+			wsWindowServer.free;
+		});
 	}
 
 	close {
@@ -518,17 +297,19 @@ WsWindow {
 
 	prCleanup {
 		//also close extra open ports here? probably not necessary
-		socketsResponder.free;
+		// socketsResponder.free;
+		responders.do(_.free);
 		// this.removeAllImageLinks; //clean images - not needed when removing whole directory
-		this.removeSubdirectory;
-		"isDefault: ".post; isDefault.postln;
+		// this.removeSubdirectory;
+		// "isDefault: ".post; isDefault.postln;
 		if(isDefault, {
 			this.isDefault_(false);
 		});
 		allWsWindows.removeAt(windowID);
 		// disconReponder.free;
 		// this.clear;
-		actionOnClose.value;
+		// actionOnClose.value;
+		onClose !? {onClose.()};
 	}
 
 	prepareJSONcommandId {|command, id, whichKey| //whichKey used for updating single value
@@ -660,7 +441,7 @@ WsWindow {
 		if(name.notNil, {
 			if(namesToIDs[name].isNil && name.isKindOf(SimpleNumber).not,
 				{
-					id = this.prGetCurrentIdAndIncrement;
+					id = this.uniqueID.next;
 					namesToIDs.put(name, id);
 					okToAddWidget = true;
 				},{
@@ -669,7 +450,7 @@ WsWindow {
 					okToAddWidget = false;
 			});
 		}, {
-			id = this.prGetCurrentIdAndIncrement;
+			id = this.uniqueID.next;
 			okToAddWidget = true;
 		});
 
@@ -693,10 +474,10 @@ WsWindow {
 				},
 				\image, {
 					//link for image
-					paramsDict[\src] !? {
-						var relPath = this.createImageLink(paramsDict[\src], id);
-						paramsDict[\src] = relPath;
-					};
+					// paramsDict[\src] !? {
+					// var relPath = this.serveImage(paramsDict[\src], id);
+					// paramsDict[\src] = relPath;
+				// };
 				}
 			);
 			guiObjects.put(id, [
@@ -710,14 +491,15 @@ WsWindow {
 		^id;
 	}
 
-	createImageLink {|path, id|
+	serveImage {|path, id|
 		var cmd, relativeImgPath;
 		// relativeImgPath = "images/" ++ id.asString; //to not have to deal with removing the directory afterwards...
-		relativeImgPath = id.asString;
-		cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
-		"Creating symlink: ".post;
-		cmd.postln;
-		cmd.systemCmd; //synchronously, so we have the link on time
+		relativeImgPath = windowID ++ "/" ++ id;
+		// cmd = "ln -sf " ++ path.escapeChar($ ) + (classDir.withTrailingSlash ++ wwwPath.withTrailingSlash ++ relativeImgPath).escapeChar($ );
+		// "Creating symlink: ".post;
+		// cmd.postln;
+		// cmd.systemCmd; //synchronously, so we have the link on time
+		wsWindowServer.sendMsg('/addImage', relativeImgPath, path);
 		^relativeImgPath;
 	}
 
@@ -765,23 +547,17 @@ WsWindow {
 		});
 	}
 
-	prGetCurrentIdAndIncrement {
-		var curID;
-		curID = curWidgetID;
-		curWidgetID = curWidgetID + 1;
-		^curID;
-	}
-
 	background_ {|color|
 		if(bodyID.isNil, {
 			bodyID = this.addWidget(nil, \body, {},
  parameters: IdentityDictionary.new.put(\backgroundColor, color));
 		}, {
 			guiObjects[bodyID][0][\backgroundColor] = color;
+			if(backgroundIsBlinking, {
+				this.prBackgroundBlink(0);
+			});
 			this.updateWidget(bodyID);
 		});
-		// updateWidget(bodyID, \backgroundColor);
-		// ^color;
 	}
 
 	background {
@@ -793,19 +569,29 @@ WsWindow {
 	}
 
 	backgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5)), period = 0.5|
+		this.prBackgroundBlink(freq, color0, color1, period);
+		this.updateWidget(bodyID);
+	}
+
+	prBackgroundBlink {|freq = 1, color0 = (Color.black), color1 = (Color.grey(0.5)), period = 0.5|
 		// this.background_(color0); //init
 		if(bodyID.isNil, {
 			bodyID = this.addWidget(nil, \body, {},
 				parameters: IdentityDictionary.new.put(\backgroundColor, color0));
 		});
-		if(freq == 0, {color0 = this.background});
+		if(freq == 0, {
+			color0 = this.background;
+			backgroundIsBlinking = false;
+		}, {
+			backgroundIsBlinking = true;
+		});
 		if(guiObjects[bodyID][0]['background-blink'].isNil, {
 			guiObjects[bodyID][0].put('background-blink', [freq, color0, color1, period]);
 		}, {
 			guiObjects[bodyID][0]['background-blink'] = [freq, color0, color1, period];
 		});
-		this.updateWidget(bodyID);
 	}
+
 
 	title_ {|title|
 		if(titleID.isNil, {
@@ -1224,8 +1010,8 @@ WsImage : WsWidget {
 			if(isURL, {
 				relPath = newPath;
 			}, {
-				relPath = ws.createImageLink(newPath, id.asString ++ "_" ++ imgID.asString);
-				imgID = imgID + 1;
+				relPath = ws.serveImage(newPath, id);
+				// imgID = imgID + 1;
 			});
 			ws.guiObjects[id][0].put(\src, relPath);
 			ws.updateWidget(id, \src);
@@ -1457,3 +1243,211 @@ WsLayout {
 
 WsHLayout : WsLayout {}
 WsVLayout : WsLayout {}
+
+
+// this class starts/stops node OSC <-> WWW (WebSockets) bridge
+// provides sendMsg functionality
+// does NOT provide OSC responders, these are implemented by individual WsWindows
+WsWindowServer {
+	var <port, <suppressPosting; //port is the "webPort" to which browser connects
+	var <pid, <oscPath;
+	var <wsOscPort; //chosen automatically
+	var <scSendNetAddr;//, <responders;
+	var <shutdownFunc; //to be added to ShutDown
+	var <queuedMessages, <messageQueueIsEmpty = false;
+	var <thisOscRootPath;
+	var <>doOnShutDown; // {|this|}
+	var <allWsWindows; //used by WsWindow to keep track of Windows associated with this WsWindowServer
+	var <>printSentMessages = false;
+
+	classvar <>oscRootPath = "/sockets";
+	classvar <nodeScript = "../WsWindowServer/index.js"; //relative to this class
+	classvar <>nodePath; //to be detected on first run
+	classvar <scriptFullPath, <classPath;
+	classvar <>runInTerminal = false; //for debugging
+	classvar <allWsWindowServers; //used by WsWindowServer to keep track which ports we're already listening on; also used by WsWindowServer to free them
+
+	*initClass {
+		allWsWindowServers = IdentityDictionary();
+	}
+
+	*new {|port = 8000, suppressPosting = false|
+		^super.newCopyArgs(port, suppressPosting).init;
+	}
+
+
+	init {
+		var cmd;
+		// responders = List();
+		queuedMessages = List();
+		allWsWindows = Set();
+
+		thisOscRootPath = oscRootPath;
+
+		this.prepareResponders; //this is only for getting the port number
+
+		//keep track of all servers
+		allWsWindowServers[port] = this;
+
+		//init class vars
+		classPath ?? {classPath = File.realpath(this.class.filenameSymbol)};
+		scriptFullPath ?? {scriptFullPath = thisProcess.platform.formatPathForCmdLine(classPath.dirname +/+ nodeScript)};
+		nodePath ?? {this.findNode};
+
+		//add to shutdown
+		shutdownFunc ?? {
+			shutdownFunc = {
+				"Freeing %(%)\n".postf(this.class.name, port);
+				//disregard action on shutdown, as it is not reliable
+				this.doOnShutDown_(nil);
+				this.free;
+			};
+			ShutDown.objects.add(shutdownFunc);
+		};
+
+		//node index.js webPort oscSendToPort /oscSendAddr (optional oscReceivePort)
+		cmd = format("% % % % %", nodePath, scriptFullPath, port, NetAddr.langPort, thisOscRootPath);
+		// "websocket server cmd: ".post; cmd.postln;
+		if(runInTerminal.not, {
+			pid = cmd.unixCmd({|code, exPid|
+				("%(%) stopped, exit code: %\n").postf(this.class.name, port, code);
+				pid = nil;
+				this.cleanup;
+				doOnShutDown !? {doOnShutDown.(this)}
+			}, suppressPosting.not);
+		}, {
+			cmd.runInTerminal;
+		});
+
+	}
+
+	findNode {
+		if(thisProcess.platform.name == \windows, {
+			nodePath = "where node".unixCmdGetStdOut;
+			if(nodePath.size == 0, {nodePath = nil}); //reset to nil if it's an empty string
+			nodePath ?? {
+				block {|break|
+					[
+						"C:\Program Files\nodejs\node.exe",
+						"C:\Program Files (x86)\nodejs\node.exe"
+					].do({|thisPath|
+						if(File.exists(thisPath), {
+							nodePath = thisPath;
+							break.();
+						})
+					})
+				}
+			};
+		}, {
+			nodePath = "whereis node".unixCmdGetStdOut;
+			if(nodePath.size == 0, {nodePath = nil}); //reset to nil if it's an empty string
+			nodePath ?? {
+				block {|break|
+					[
+						"/usr/bin/node",
+						"/usr/local/bin/node"
+					].do({|thisPath|
+						if(File.exists(thisPath), {
+							nodePath = thisPath;
+							break.();
+						})
+					})
+				}
+			};
+		});
+		if(nodePath.isNil, {
+			Error("Couldn't find node.js executable. \nIf node is installed, you might want to provide path to node executable through WsWindowServer.nodePath_(path)").throw;
+		}, {
+			postf("node.js found at %\n", nodePath);
+		});
+	}
+
+	kill {|force = false|
+		pid !? {
+			if(force, {
+				thisProcess.platform.killProcessByID(pid)
+			}, {
+				if(thisProcess.platform.name == \windows, {
+					("taskkill /pid " ++ pid).unixCmd;
+				}, {
+					("kill -15 " ++ pid).unixCmd;
+				})
+			})
+		}
+	}
+
+	prepareResponders {
+		// since we are using different paths for different windows, we'll use WsWindow to create a responder for a given window
+		// sendMsg is still going to use WsWindowServer class
+
+		// responders.add(
+		OSCFunc({|msg, time, addr, recvPort|
+			var sendPort;
+			if(msg[1] == 'oscport', {
+				sendPort = msg[2];
+				this.updateSendPort(sendPort);
+			});
+			// msg.postln;
+		}, thisOscRootPath ++ "/" ++ port).oneShot;
+	// );
+	}
+
+	updateSendPort {|port|
+		"setting node server's receive port: ".post; port.postln;
+		scSendNetAddr = NetAddr("localhost", port);
+		//send messages
+		//should we fork this?
+		while({queuedMessages.size > 0}, {
+			this.prSendMsg(*queuedMessages.pop);
+		});
+		messageQueueIsEmpty = true;
+		//send queued messages here
+	}
+
+	sendMsg {|...args|
+		if(messageQueueIsEmpty, {
+			if(pid.notNil, {
+				this.prSendMsg(*args);
+			}, {
+				format("%(%) is not running", this.class.name, port).warn;
+			});
+		}, {
+			queuedMessages.add(args);
+		});
+	}
+
+	prSendMsg {|...args| //this will not check for the queue
+		scSendNetAddr.sendMsg(*args);
+		if(printSentMessages, {
+			this.class.name.post; " oscMessage: ".post;
+			args.postln;
+		});
+	}
+
+
+	free {
+		if(pid.notNil, {
+			this.kill(false);
+		}, {
+			"% doesn't seem to be running.\n".postf(this.class.name);
+		});
+	}
+
+	cleanup { //triggered on exit
+		// "Cleaning up.".postln;
+		// responders.do(_.free);
+		ShutDown.objects.remove(shutdownFunc);
+		// shutdownFunc = nil;
+		allWsWindowServers.removeAt(port);
+		allWsWindows.do(_.free); //free all associated wswindowservers
+	}
+}
+
+// helper class for managing IDs
+WsWindowUniqueID {
+	var <id=0;
+	*new {|id = 0|
+		^super.newCopyArgs(id)
+	}
+	next  {^id = id + 1}
+}
