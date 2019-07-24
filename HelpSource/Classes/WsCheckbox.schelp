@@ -45,7 +45,7 @@ An integer setting the state number (0/1).
 EXAMPLES::
 
 code::
-a = WsWindow.new("new title", true, 8000);//start the window
+a = WsWindow.new("new title", 8000, true);//start the window
 "http://localhost:8000".openOS; //open in a browser
 
 g = WsCheckbox.new(a, Rect(0.0, 0, 0.2, 0.2)); //checkbox; not resizable due to browser restrictions. Eventually this might change but requires more work with CSS

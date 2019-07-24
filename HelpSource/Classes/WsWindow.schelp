@@ -1,110 +1,91 @@
 TITLE:: WsWindow
-summary:: WebSocket-based GUI for SuperCollider.
+summary:: WebSocket-based GUI for SuperCollider
 categories:: GUI>WsGUI, Extensions
-related:: Classes/WsWindow, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
+related:: Classes/WsWindow, Classes/WsWindowServer, Classes/WsLayout, Classes/WsButton, Classes/WsCheckbox, Classes/WsImage, Classes/WsInput, Classes/WsPopUpMenu, Classes/WsSimpleButton, Classes/WsSlider, Classes/WsStaticText
 
 DESCRIPTION::
-WsWindow is a representation of a single browser window for drawing GUI elements. This can be accessed locally and over the network. WsWindow and WsWidgets aims to be interchangeable with SC's GUI classes, however full interchangeability is not likely to be achieved.
+code::WsWindow:: is a representation of a single webpage for drawing GUI elements. It can be accessed from a web browser locally and over the network. WsWindow and WsWidgets aims to have an API as close as possible to SC's GUI classes.
 
-WsWindow internally uses 2 types of servers: a single static www server for responding to initial web browser request, and a websocket server (one for each instance of WsWindow) for mainaining real-time communication with GUI widgets. When using a single instance of WsWindow, one can specify at which port the webpage/GUI will be served. See link::#*startWwwServer:: for details.
-note::When using multiple WsWindows, it is advised to link::#*startWwwServer#start the www server:: separately, and not provide a port number for each instance.::
+WsWindow uses a link::https://nodejs.org/##node.js:: script to serve dynamic webpages. This script is controlled internally by the link::Classes/WsWindowServer:: class.
 
-Technical notes:
-Under the hood, WsWindow uses a static www and dynamic websocket servers implemented in Python. It needs Python 2.7 and should work ouf of the box on OS X and Linux. It doesn't work on Windows currently.
-If using this code over the internet, please be advised that it was not tested for security or reliability with hundreds/thousands of clients connected.
+note::
+If using this code over the internet, please be advised that it was not tested for security or reliability with many clients connected at once.
+::
 
-note:: It is possible to use an already running http server (e.g. Apache), presumably serving pages at the default port 80. In such case code::nil:: should be specified as wwwPort for WsWindow and the running http server needs to serve the code::www:: directory(found in this extension's main directory).::
+note::
+The API of code::WsWindow:: has changed after Quark version 0.1.
+::
 
-	Credits:
-	This software was developed by Marcin Pączkowski and Michael McCrea with the support of the link::#http://www.dxarts.washington.edu#Center for Digital Arts and Experimental Media (DXARTS):: at the University of Washington.
+
+Credits:
+This software was developed by Marcin Pączkowski and Michael McCrea with the support of the link::http://dxarts.washington.edu##Center for Digital Arts and Experimental Media (DXARTS):: at the University of Washington.
 
 CLASSMETHODS::
 
 
-PRIVATE:: defaultWwwPath
-PRIVATE:: checkWwwPort
-PRIVATE:: sourceWwwPath
-PRIVATE:: redirectionHtmlFile
 PRIVATE:: classPath
-PRIVATE:: discMsgFile
-PRIVATE:: jsFilename
-PRIVATE:: staticServerPath
-PRIVATE:: checkPortPath
 PRIVATE:: setClassVars
-PRIVATE:: wwwPort
-PRIVATE:: bridgePath
-PRIVATE:: globalWwwPath
 PRIVATE:: addToShutdown
 PRIVATE:: redirectionAddrFile
-	PRIVATE:: classDir
+PRIVATE:: classDir
 
 METHOD:: new
 Starts a new web-based Window to draw GUI elements on.
 
 ARGUMENT:: title
-	Window's title, used for both title text in the browser's frame/tab, as well as the portion of the address.
+Window's title, used for both title text in the browser's frame/tab, as well as the portion of the address.
 
-note::Please don't use characters that are not filename-safe (like #^/\ etc). Spaces should be fine.::
-
-ARGUMENT:: isDefault
-If code::true::, client's browser will be redirected to this window automatically when connecting to link::http://localhost:8000#http://yourIP:wwwPort::. If code::false::, then list of available windows will be presented instead.
+note::Please don't use characters that are not filename-safe (like #^/\ etc). Spaces are allowed and will be removed in the window's address.::
 
 ARGUMENT:: wwwPort
-When using only one instance of WsWindow, specify the port at which the page will be served. See link::#*startWwwServer:: for details.
+Specify the port at which the page will be served.
 
-ARGUMENT:: actionOnClose
-A function to be evaluated when the window is closed (i.e. freed in SuperCollider, as opposed to browser window being closed)
+ARGUMENT:: isDefault
+If code::true::, client's browser will be redirected to this window automatically when connecting to link::http://localhost:8000##http://yourIP:wwwPort::. If code::false::, then list of available windows will be presented instead.
 
 ARGUMENT:: suppressPosting
-If code::true::, then messages from Python websocket server will not post to SC's post window.
-
-ARGUMENT:: useNexus
-If code::true::, uses NexusUI widgets. strong::This functionality is not finished.::
+If code::true::, then messages from the websocket server will not post to SC's post window.
 
 returns:: An instance of WsWindow
 
 METHOD:: freeAll
-	Close/free all open instances of WsWindow (useful in case of accidentally re-running a code block that instantiates new WsWindows).
-	This will also close the static www server, if running.
-
-METHOD:: startWwwServer
-Starts static www server. This will be invoked automatically if you provide wwwPort when starting a new WsWindow instance.
-It's preferable to use this clas method to start the www server if you plan on having multiple WsWindows.
-
-ARGUMENT:: port
-Port at which your WsWindow will be served at. That needs to be an unrestricted port (usually above 1024), not used by any other network service in the system. 8000 or similar is usually a good default.
-Your WsWindow will be available at link::http://yourIP:wwwPort:: in your web browser (e.g. link::http://localhost:8000::).
-
-ARGUMENT:: suppressPosting
-If code::true::, then messages from Python static www server will not post to SC's post window.
-
-METHOD:: stopWwwServer
-Stops the static server.
-	This will not close any instances of WsWindow.
-
-
-
-	METHOD:: allWsWindows
-returns:: A dictionary pointing to all instantiated WsWindows.
-
-METHOD:: pythonPath
-	This can be used to specify a custom path to the Python interpreter (not tested). The default is code::"python"::. Should be run before instantiating WsWindow.
-
-
-METHOD:: killPython
-	strong::Only for testing/development, do not use unless absolutely necessary!:: This invokes code::killall python:: and kills all instances of Python interpreter. Usually code::WsWindow.freeAll:: should shut down cleanly all running Python scripts.
-
-
-METHOD:: classPath
-returns:: A path to the class file (following symlinks).
-METHOD:: wwwPid
-returns:: A PID of the static www server.
-
+Close/free all open instances of WsWindow (useful in case of accidentally re-running a code block that instantiates new WsWindows). This will also close the node server, if running.
 
 
 INSTANCEMETHODS::
 
-	PRIVATE:: wsPort
+METHOD:: free
+Free this instance of the WsWindow.
+
+METHOD:: close
+Same as link::#-free::.
+
+METHOD:: clear
+Removes all GUI elements from the WsWindow (but does not close/free it).
+
+METHOD:: background
+Set/get the background color.
+
+ARGUMENT:: color
+Should be an instance of a code::Color::.
+
+METHOD:: isDefault
+Sets or un-sets this WsWindow as default. Also see link::#*new::.
+
+ARGUMENT:: val
+code::true:: or code::false::
+
+METHOD:: title
+Set/get window title. Also see link::#*new::.
+ARGUMENT:: title
+New title.
+
+METHOD:: backgroundBlink
+If code::freq > 0::, the background will alternate between the two defined colors. To stop alternatting between colors, set code::freq:: to code::0:: or use link::#-background::.
+
+
+
+PRIVATE:: wsPort
 PRIVATE:: windowID
 PRIVATE:: guiObjects
 PRIVATE:: clientDict
@@ -159,45 +140,12 @@ PRIVATE:: socketsResponder
 PRIVATE:: addSubdirectory
 PRIVATE:: prepareStyleString
 PRIVATE:: addWidget
-	PRIVATE:: bodyID
-
-METHOD:: free
-Free this instance of the WsWindow.
-
-METHOD:: close
-Same as link::#-free::.
-
-METHOD:: actionOnClose
-Evaluates a function when WsWindows is freed/closed.
-
-returns:: A current function to be evalueated on closing.
-
-METHOD:: clear
-	Removes all GUI elements from the WsWindow (but does not close/free it).
-
-
-METHOD:: background
-Set/get the background color.
-
-ARGUMENT:: color
-Should be an instance of a code::Color::.
-
-METHOD:: isDefault
-	Sets or un-sets this WsWindow as default. Also see link::#*new::.
-
-	ARGUMENT:: val
-	code::true:: or code::false::
-
-	METHOD:: title
-Set/get window title. Also see link::#*new::.
-ARGUMENT:: title
-New title.
-
+PRIVATE:: bodyID
 
 EXAMPLES::
 
 code::
-a = WsWindow.new("new title", true, 8000); //specify port for using internal static web server; nil when serving www folder using another web server
+a = WsWindow.new("new title", 8000, true);
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
 "http://localhost:8000".openOS;
 
@@ -206,6 +154,7 @@ NetAddr.myIP; //from NetLib; useful for connecting external clients
 //background and title
 a.background_(Color.blue);
 a.background_(Color.green);
+a.backgroundBlink(2, Color.red(0.5), Color.black);
 a.title_("different title");
 
 //finishing
@@ -214,13 +163,10 @@ a.free //close ws server
 
 // Multiple windows
 
-WsWindow.startWwwServer(8000); //can be handled manually or when creating WsWindow; for multiple windows manual creation/freeing is advisable to avoid problems
-WsWindow.wwwPid; //check PID
-
-a = WsWindow.new("new title", false); //when no port is specified, no www server will be started, nor one will be stopped when freeing this
-o = WsWindow.new("different title", false); //second window
+a = WsWindow.new("new title", 8000, false);
+o = WsWindow.new("different title", 8000, false); //second window
 //now point a web browser to http://localhost:8000 (or http://yourIP:8000)
-"http://localhost:8000".openOS;
+"http://localhost:8000".openOS; //this will show a list of available windows
 
 a.backgroundColor_(Color.blue); //first window
 o.backgroundColor_(Color.green); //second window
@@ -232,9 +178,6 @@ a.isDefault_(true);//set default
 a.free;
 o.free;
 
-WsWindow.stopWwwServer; //stop static server when you're done
-WsWindow.wwwPid; //check - should be nil now
-
-//alternative - freeAll: close all windows/servers
-WsWindow.freeAll; //use that instead of killPython
+//close all windows/servers
+WsWindow.freeAll;
 ::

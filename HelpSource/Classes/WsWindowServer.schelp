@@ -1,0 +1,28 @@
+TITLE:: WsWindowServer
+summary:: Interface to node.js-based WebSocket server for WsGUI framework
+categories:: GUI>WsGUI, Extensions
+related:: Classes/WsWindow
+
+DESCRIPTION::
+code::WsWindowServer:: manages a code::node.js::-based server for the WsGUI framework. Usually you don't need to use it directly, as link::Classes/WsWindow##WsWindow:: will start/stop instances of the code::WsWindowServer:: for you.
+
+Requires link::https://nodejs.org/##node.js::.
+
+
+CLASSMETHODS::
+
+METHOD:: new
+Starts a new instance of the www/websocket server using node.js. Only one server can be active on a given port. Single server can server multiple code::WsWindow::s.
+
+ARGUMENT:: port
+The port that the server listens on for web browser connections.
+
+ARGUMENT:: suppressPosting
+If code::true::, messages from the code::node.js:: server will not be posted in the post window.
+
+
+EXAMPLES::
+
+code::
+//
+::

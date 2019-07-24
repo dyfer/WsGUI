@@ -31,7 +31,7 @@ INSTANCEMETHODS::
 EXAMPLES::
 
 code::
-a = WsWindow.new("new title", true, 8000);//start the window
+a = WsWindow.new("new title", 8000, true);//start the window
 "http://localhost:8000".openOS; //open in a browser
 
 //button - simple
