@@ -1308,6 +1308,7 @@ WsWindowServer {
 
 		//node index.js webPort oscSendToPort /oscSendAddr (optional oscReceivePort)
 		cmd = format("% % % % %", nodePath, scriptFullPath, port, NetAddr.langPort, thisOscRootPath);
+		cmd = thisProcess.platform.formatPathForCmdLine(cmd);
 		// "websocket server cmd: ".post; cmd.postln;
 		if(runInTerminal.not, {
 			pid = cmd.unixCmd({|code, exPid|
@@ -1324,13 +1325,13 @@ WsWindowServer {
 
 	findNode {
 		if(thisProcess.platform.name == \windows, {
-			nodePath = "where node".unixCmdGetStdOut;
+			nodePath = "where node".unixCmdGetStdOut.replace($\n);
 			if(nodePath.size == 0, {nodePath = nil}); //reset to nil if it's an empty string
 			nodePath ?? {
 				block {|break|
 					[
-						"C:\Program Files\nodejs\node.exe",
-						"C:\Program Files (x86)\nodejs\node.exe"
+						"C:/Program Files/nodejs/node.exe",
+						"C:/Program Files (x86)/nodejs/node.exe"
 					].do({|thisPath|
 						if(File.exists(thisPath), {
 							nodePath = thisPath;
@@ -1340,7 +1341,7 @@ WsWindowServer {
 				}
 			};
 		}, {
-			nodePath = "whereis node".unixCmdGetStdOut;
+			nodePath = "whereis node".unixCmdGetStdOut.replace($\n);
 			if(nodePath.size == 0, {nodePath = nil}); //reset to nil if it's an empty string
 			nodePath ?? {
 				block {|break|
@@ -1359,19 +1360,24 @@ WsWindowServer {
 		if(nodePath.isNil, {
 			Error("Couldn't find node.js executable. \nIf node is installed, you might want to provide path to node executable through WsWindowServer.nodePath_(path)").throw;
 		}, {
+			nodePath = thisProcess.platform.formatPathForCmdLine(nodePath);
 			postf("node.js found at %\n", nodePath);
 		});
 	}
 
 	kill {|force = false|
 		pid !? {
-			if(force, {
-				thisProcess.platform.killProcessByID(pid)
+			if(thisProcess.platform.name == \windows, {
+				("taskkill /f /t /pid" ++ pid).postln.unixCmd; //on Windows we have to force kill with child processes
 			}, {
-				if(thisProcess.platform.name == \windows, {
-					("taskkill /pid " ++ pid).unixCmd;
+				if(force, {
+					thisProcess.platform.killProcessByID(pid)
 				}, {
-					("kill -15 " ++ pid).unixCmd;
+					if(thisProcess.platform.name == \windows, {
+						("taskkill /t /pid" ++ pid).unixCmd;//this doesn't work
+					}, {
+						("kill -15 " ++ pid).unixCmd;
+					})
 				})
 			})
 		}
