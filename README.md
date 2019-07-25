@@ -2,10 +2,6 @@
 
 _A quark for [SuperCollider](https://github.com/supercollider/supercollider)_
 
-Allows creating user interface displayed in a web browser, locally and over the network.
+Allows creating user interface displayed in a web browser, locally and over the network. Requires [node.js](https://nodejs.org/).
 
-Requires python. Tested on linux and macOS with python2.
-
-Uses following libraries:
-- [pyOSC](https://github.com/ptone/pyosc)
-- [SimpleWebSocketServer](https://github.com/dpallot/simple-websocket-server).
+[Initial release](https://github.com/dyfer/wsGUI.quark/releases/tag/0.1) used Python 2 instead of node.js.
