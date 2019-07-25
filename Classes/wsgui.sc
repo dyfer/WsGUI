@@ -1308,7 +1308,9 @@ WsWindowServer {
 
 		//node index.js webPort oscSendToPort /oscSendAddr (optional oscReceivePort)
 		cmd = format("% % % % %", nodePath, scriptFullPath, port, NetAddr.langPort, thisOscRootPath);
-		cmd = thisProcess.platform.formatPathForCmdLine(cmd);
+		if(thisProcess.platform.name == \windows, {
+			cmd = format("\"%\"", cmd); //quote everything on windows
+		});
 		// "websocket server cmd: ".post; cmd.postln;
 		if(runInTerminal.not, {
 			pid = cmd.unixCmd({|code, exPid|
@@ -1368,13 +1370,13 @@ WsWindowServer {
 	kill {|force = false|
 		pid !? {
 			if(thisProcess.platform.name == \windows, {
-				("taskkill /f /t /pid" ++ pid).postln.unixCmd; //on Windows we have to force kill with child processes
+				("taskkill /f /t /pid " ++ pid).unixCmd; //on Windows we have to force kill with child processes
 			}, {
 				if(force, {
 					thisProcess.platform.killProcessByID(pid)
 				}, {
 					if(thisProcess.platform.name == \windows, {
-						("taskkill /t /pid" ++ pid).unixCmd;//this doesn't work
+						("taskkill /t /pid " ++ pid).unixCmd;//this doesn't work
 					}, {
 						("kill -15 " ++ pid).unixCmd;
 					})
