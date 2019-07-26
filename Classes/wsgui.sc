@@ -87,7 +87,7 @@ WsWindow {
 				Error("You need to pass port number as the second argument to the WsWindow").throw;
 			}, {
 				wsWindowServer = WsWindowServer.allWsWindowServers[wwwPortArg]; //first try to use an existing server
-				wsWindowServer ?? {wsWindowServer = WsWindowServer(wwwPortArg, suppressPosting)}; //if nil, that means we need to create a new one
+				wsWindowServer ?? {wsWindowServer = WsWindowServer(wwwPortArg, suppressPosting, {this.free})}; //if nil, that means we need to create a new one
 				// add ourselves to the list of windows
 				wsWindowServer.allWsWindows.add(this);
 				//add error message - we're freeing all WsWindows on server close, so this is not needed
@@ -113,11 +113,13 @@ WsWindow {
 	}
 
 	isDefault_ {|val = false|
-		if(val, {
-			this.wsWindowServer.sendMsg("/setRedirect", windowID)
-		}, {
-			this.wsWindowServer.sendMsg("/setRedirect")
-		});
+		this.wsWindowServer !? {
+			if(val, {
+				this.wsWindowServer.sendMsg("/setRedirect", windowID)
+			}, {
+				this.wsWindowServer.sendMsg("/setRedirect")
+			});
+		}
 	}
 
 	prPrepareGlobalResponders {
@@ -275,20 +277,20 @@ WsWindow {
 	free {
 		"Freeing WsWindow titled ".post; title.postln;
 		this.prCleanup;// clean up directories first
-		// remove window from the server
-		wsWindowServer.sendMsg("/remove", windowID);
-		// remove ourselves from the window Set
-		wsWindowServer.allWsWindows.remove(this);
-		// also this se
-		allWsWindows.removeAt(windowID);
-		//free if we're the last window
-		if(wsWindowServer.allWsWindows.size == 0, {
-			// "This was the last WsWindow on this WsWindowServer, freeing the server".postln;
-			// if(wsWindowServer.doOnShutDown == serverShutdownFunction, {
-			// wsWindowServer.doOnShutDown_(nil);
-		// });
-			wsWindowServer.free;
-		});
+		wsWindowServer !? {
+			// remove window from the server
+			wsWindowServer.sendMsg("/remove", windowID);
+			// remove ourselves from the window Set
+			wsWindowServer.allWsWindows.remove(this);
+			//free if we're the last window
+			if(wsWindowServer.allWsWindows.size == 0, {
+				// "This was the last WsWindow on this WsWindowServer, freeing the server".postln;
+				// if(wsWindowServer.doOnShutDown == serverShutdownFunction, {
+				// wsWindowServer.doOnShutDown_(nil);
+				// });
+				wsWindowServer.free;
+			});
+		};
 	}
 
 	close {
@@ -1251,8 +1253,8 @@ WsVLayout : WsLayout {}
 // does NOT provide OSC responders, these are implemented by individual WsWindows
 WsWindowServer {
 	var <port, <suppressPosting; //port is the "webPort" to which browser connects
+	var <onFailure; //optional function to be triggered if WsWindowServer cannot start
 	var <pid, <oscPath;
-	var <wsOscPort; //chosen automatically
 	var <scSendNetAddr;//, <responders;
 	var <shutdownFunc; //to be added to ShutDown
 	var <queuedMessages, <messageQueueIsEmpty = false;
@@ -1272,8 +1274,8 @@ WsWindowServer {
 		allWsWindowServers = IdentityDictionary();
 	}
 
-	*new {|port = 8000, suppressPosting = false|
-		^super.newCopyArgs(port, suppressPosting).init;
+	*new {|port = 8000, suppressPosting = false, onFailure|
+		^super.newCopyArgs(port, suppressPosting, onFailure).init;
 	}
 
 
@@ -1360,6 +1362,7 @@ WsWindowServer {
 			};
 		});
 		if(nodePath.isNil, {
+			this.cleanup;
 			Error("Couldn't find node.js executable. \nIf node is installed, you might want to provide path to node executable through WsWindowServer.nodePath_(path)").throw;
 		}, {
 			nodePath = thisProcess.platform.formatPathForCmdLine(nodePath);
@@ -1449,6 +1452,7 @@ WsWindowServer {
 		// shutdownFunc = nil;
 		allWsWindowServers.removeAt(port);
 		allWsWindows.do(_.free); //free all associated wswindowservers
+		scSendNetAddr ?? {onFailure !? {onFailure.()}}; //if we didn't receive OSC port, that means we failed to start
 	}
 }
 

@@ -20,6 +20,9 @@ The port that the server listens on for web browser connections.
 ARGUMENT:: suppressPosting
 If code::true::, messages from the code::node.js:: server will not be posted in the post window.
 
+ARGUMENT:: onFailure
+Optional function to be executed if WsWindowServer fails to start. Used by WsWindow to free resources in such case.
+
 
 EXAMPLES::
 
