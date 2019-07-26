@@ -1343,7 +1343,7 @@ WsWindowServer {
 				}
 			};
 		}, {
-			nodePath = "whereis node".unixCmdGetStdOut.replace($\n);
+			nodePath = "which node".unixCmdGetStdOut.replace($\n);
 			if(nodePath.size == 0, {nodePath = nil}); //reset to nil if it's an empty string
 			nodePath ?? {
 				block {|break|
