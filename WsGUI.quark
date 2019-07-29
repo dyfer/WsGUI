@@ -7,6 +7,6 @@
        version: "0.1",
         schelp: "WsWindow",
            url: "https://github.com/dyfer/wsGUI.quark",
-  isCompatible: true ,
-         since: ""
+  isCompatible: true,
+ext_dependency: "Node.js",
 )
