@@ -1351,7 +1351,8 @@ WsWindowServer {
 				block {|break|
 					[
 						"/usr/bin/node",
-						"/usr/local/bin/node"
+						"/usr/local/bin/node",
+						"/opt/homebrew/bin/node"
 					].do({|thisPath|
 						if(File.exists(thisPath), {
 							nodePath = thisPath;
